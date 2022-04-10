@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_JUCE_PLUGIN "Build JUCE Plugin" ON)
-option(ENABLE_TESTS "Enable building Tests" ON)
+option(ENABLE_TESTS "Enable building Tests" OFF)
 
 add_subdirectory(backend)
 if(BUILD_JUCE_PLUGIN)

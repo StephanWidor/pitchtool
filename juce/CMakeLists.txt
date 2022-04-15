@@ -16,6 +16,8 @@ juce_add_plugin(${PROJECT_NAME}
     PRODUCT_NAME "pitchtool"
     PLUGIN_NAME "pitchtool"
     VST3_CATEGORIES "Fx"
+    NEEDS_MIDI_INPUT TRUE
+    NEEDS_MIDI_OUTPUT FALSE
     LV2_URI https://widor.site
     )
 

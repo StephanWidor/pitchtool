@@ -57,19 +57,20 @@ private:
 class ChannelComponent : public ui::GroupComponent
 {
 public:
-    ChannelComponent(::juce::AudioProcessorValueTreeState &, size_t channel);
+    ChannelComponent(Processor &, size_t channel);
 
     void resized() override;
 
     void setFrequency(float frequency, float standardPitch);
 
 private:
-    ::juce::ToggleButton m_autoTuneButton{"Auto Tune"};
+    ui::GroupComponent m_tuningComponent{""};
+    ::juce::ComboBox m_tuningComboBox{"Tuning"};
     ui::RoundSlider m_pitchShiftSlider{"Pitch"};
     ui::RoundSlider m_formantsShiftSlider{"Formants"};
     ui::NoteDisplay m_noteDisplay{ui::NoteDisplay::Layout::Vertical};
 
-    ::juce::AudioProcessorValueTreeState::ButtonAttachment m_autoTuneAttachment;
+    ::juce::AudioProcessorValueTreeState::ComboBoxAttachment m_tuningAttachment;
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_pitchShiftAttachment;
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_formantsShiftAttachment;
 

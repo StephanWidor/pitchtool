@@ -122,14 +122,23 @@ void sw::juce::pitchtool::TuningComponent::setFrequency(const float frequency, c
     m_noteDisplay.set(frequency, standardPitch);
 }
 
-sw::juce::pitchtool::ChannelComponent::ChannelComponent(::juce::AudioProcessorValueTreeState &processorState,
-                                                        size_t channel)
+sw::juce::pitchtool::ChannelComponent::ChannelComponent(Processor &processor, size_t channel)
     : ui::GroupComponent("Channel " + std::to_string(channel), marginsSize, true)
-    , m_autoTuneAttachment(processorState, "autoTune_" + ::juce::String(channel), m_autoTuneButton)
-    , m_pitchShiftAttachment(processorState, "pitchShift_" + ::juce::String(channel), m_pitchShiftSlider)
-    , m_formantsShiftAttachment(processorState, "formantsShift_" + ::juce::String(channel), m_formantsShiftSlider)
+    , m_tuningAttachment(processor.state(), "tuning_" + ::juce::String(channel), m_tuningComboBox)
+    , m_pitchShiftAttachment(processor.state(), "pitchShift_" + ::juce::String(channel), m_pitchShiftSlider)
+    , m_formantsShiftAttachment(processor.state(), "formantsShift_" + ::juce::String(channel), m_formantsShiftSlider)
 {
-    addAndMakeVisible(m_autoTuneButton);
+    m_tuningComboBox.addItem(std::string(tuning::typeNames[tuning::NoTuning]), 1);
+    m_tuningComboBox.addItem(std::string(tuning::typeNames[tuning::Midi]) + " Ch" +
+                               std::to_string(tuning::processingToMidiChannel(channel)),
+                             2);
+    m_tuningComboBox.addItem(std::string(tuning::typeNames[tuning::AutoTune]), 3);
+
+    // doesn't seem to be initially synced, so we do that by hand
+    m_tuningComboBox.setSelectedId(processor.parameterValue<int>("tuning_" + std::to_string(channel)) + 1);
+
+    addAndMakeVisible(m_tuningComponent);
+    m_tuningComponent.addAndMakeVisible(m_tuningComboBox);
     addAndMakeVisible(m_pitchShiftSlider);
     addAndMakeVisible(m_formantsShiftSlider);
     addAndMakeVisible(m_noteDisplay);
@@ -149,7 +158,10 @@ void sw::juce::pitchtool::ChannelComponent::resized()
     m_noteDisplay.setBounds(localBounds.withTrimmedLeft(otherWidth).toNearestInt());
 
     const auto sliderBounds = localBounds.withWidth(otherWidth).reduced(marginsSize);
-    ui::layoutHorizontal(sliderBounds, marginsSize, m_autoTuneButton, m_pitchShiftSlider, m_formantsShiftSlider);
+    ui::layoutHorizontal(sliderBounds, marginsSize, m_tuningComponent, m_pitchShiftSlider, m_formantsShiftSlider);
+
+    m_tuningComboBox.setBounds(0, m_tuningComponent.getHeight() / 3, m_tuningComponent.getWidth(),
+                               m_tuningComponent.getHeight() / 5);
 }
 
 void sw::juce::pitchtool::ChannelComponent::setFrequency(const float frequency, const float standardPitch)
@@ -189,7 +201,7 @@ sw::juce::pitchtool::Editor::Editor(sw::juce::pitchtool::Processor &processor)
     , m_plotComponent(processor)
     , m_tuningComponent(processor.state())
     , m_channelComponents(containers::makeArray<Processor::NumChannels>(
-        [&](const size_t channel) { return ChannelComponent(processor.state(), channel); }))
+        [&](const size_t channel) { return ChannelComponent(processor, channel); }))
     , m_mixComponent(processor.state())
 {
     setSize(600, 800);

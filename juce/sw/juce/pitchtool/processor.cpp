@@ -38,8 +38,9 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createChannelGroup(const s
     const ::juce::String channelAsString(channel);
     return std::make_unique<juce::AudioProcessorParameterGroup>(
       "channel_" + channelAsString, "Channel " + channelAsString, "|",
-      std::make_unique<::juce::AudioParameterBool>("autoTune_" + channelAsString, "Auto Tune " + channelAsString,
-                                                   false),
+      std::make_unique<::juce::AudioParameterInt>(
+        "tuning_" + channelAsString, "Tuning " + channelAsString, sw::juce::pitchtool::tuning::NoTuning,
+        sw::juce::pitchtool::tuning::AutoTune, sw::juce::pitchtool::tuning::NoTuning),
       std::make_unique<::juce::AudioParameterFloat>("pitchShift_" + channelAsString, "Pitch Shift " + channelAsString,
                                                     ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f), 0.0f),
       std::make_unique<::juce::AudioParameterFloat>("formantsShift_" + channelAsString,
@@ -59,6 +60,32 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout(const 
     for (auto channel = 0u; channel < numChannels; ++channel)
         parameters.push_back(createChannelGroup(channel, channel == 0u ? 1.0f : 0.0f));
     return {parameters.begin(), parameters.end()};
+}
+
+void processMidiNotes(const ::juce::MidiBuffer &midiBuffer, const bool byPassed,
+                      std::array<std::optional<sw::Note>, sw::juce::pitchtool::Processor::NumChannels> &o_midiNotes)
+{
+    using namespace sw::juce::pitchtool;
+    if (byPassed)
+    {
+        for (auto &note : o_midiNotes)
+            note = std::nullopt;
+    }
+    else
+    {
+        for (const auto &metaMessage : midiBuffer)
+        {
+            const auto message = metaMessage.getMessage();
+            const auto channel = tuning::midiToProcessingChannel(message.getChannel());
+            if (channel < Processor::NumChannels)
+            {
+                if (message.isNoteOff())
+                    o_midiNotes[channel] = std::nullopt;
+                else if (message.isNoteOn())
+                    o_midiNotes[channel] = sw::fromMidi(message.getNoteNumber());
+            }
+        }
+    }
 }
 
 }    // namespace
@@ -91,22 +118,30 @@ sw::juce::pitchtool::Processor::PitchProcessor::ChannelParameters
 {
     const auto channelAsString = std::to_string(channel);
 
-    tuning::Type tuningType;
-    if (parameterValue<bool>("autoTune_" + channelAsString))
-        tuningType = tuning::AutoTune{};
+    const auto tuningType = [&]() {
+        const auto typeAsInt = parameterValue<int>("tuning_" + channelAsString);
+        sw::tuning::Type type;
+        if (typeAsInt == tuning::Midi && m_currentMidiNotes[channel] != std::nullopt)
+            type = *m_currentMidiNotes[channel];
+        else if (typeAsInt == tuning::AutoTune)
+            type = sw::tuning::AutoTune{};
+        return type;
+    };
 
-    return {tuningType, parameterValue<float>("pitchShift_" + channelAsString),
+    return {tuningType(), parameterValue<float>("pitchShift_" + channelAsString),
             parameterValue<float>("formantsShift_" + channelAsString),
             parameterValue<float>("mixGain_" + channelAsString)};
 }
 
-void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &buffer, ::juce::MidiBuffer &,
-                                                  const bool byPassed)
+void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &audioBuffer,
+                                                  ::juce::MidiBuffer &midiBuffer, const bool byPassed)
 {
-    const auto numSamples = static_cast<size_t>(buffer.getNumSamples());
+    processMidiNotes(midiBuffer, byPassed, m_currentMidiNotes);
+
+    const auto numSamples = static_cast<size_t>(audioBuffer.getNumSamples());
     const auto stepSize = m_pitchProcessor.stepSize();
 
-    m_inputBuffer.ringPush(std::span(buffer.getReadPointer(0), numSamples));
+    m_inputBuffer.ringPush(std::span(audioBuffer.getReadPointer(0), numSamples));
 
     for (m_numNewProcessingSamples += numSamples; m_numNewProcessingSamples >= stepSize;
          m_numNewProcessingSamples -= stepSize)
@@ -130,8 +165,8 @@ void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &bu
 
     assert(m_numOutSamples <= m_outputBuffer.inBuffer().size());
     const auto outStart = m_outputBuffer.inBuffer().end() - static_cast<int>(m_numOutSamples);
-    std::copy(outStart, outStart + buffer.getNumSamples(),
-              std::span(buffer.getWritePointer(0), static_cast<size_t>(buffer.getNumSamples())).begin());
+    std::copy(outStart, outStart + audioBuffer.getNumSamples(),
+              std::span(audioBuffer.getWritePointer(0), static_cast<size_t>(audioBuffer.getNumSamples())).begin());
 
     assert(m_numOutSamples >= numSamples);
     m_numOutSamples -= numSamples;

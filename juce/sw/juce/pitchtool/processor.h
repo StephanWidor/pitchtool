@@ -6,6 +6,29 @@
 
 namespace sw::juce::pitchtool {
 
+namespace tuning {
+
+enum Type : int
+{
+    NoTuning = 0,
+    Midi = 1,
+    AutoTune = 2,
+    TypeCount = 3
+};
+constexpr std::array<std::string_view, TypeCount> typeNames{"No Tuning", "Midi", "Auto Tune"};
+
+constexpr int processingToMidiChannel(const size_t channel)
+{
+    return static_cast<int>(channel) + 1;
+}
+
+constexpr size_t midiToProcessingChannel(const int channel)
+{
+    return static_cast<size_t>(channel) - 1u;
+}
+
+}    // namespace tuning
+
 class Processor : public ::juce::AudioProcessor
 {
 public:
@@ -30,7 +53,7 @@ public:
 
     const ::juce::String getName() const override { return JucePlugin_Name; }
 
-    bool acceptsMidi() const override { return false; }
+    bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
@@ -82,6 +105,8 @@ private:
     const size_t m_signalBufferSize{48000u};
     containers::SpinLockedBuffer<float> m_inputBuffer{m_signalBufferSize, 0.0f};
     containers::SpinLockedBuffer<float> m_outputBuffer{m_signalBufferSize, 0.0f};
+
+    std::array<std::optional<Note>, NumChannels> m_currentMidiNotes;
 
     ::juce::ChangeBroadcaster m_newDataBroadCaster;
 

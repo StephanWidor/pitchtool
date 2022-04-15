@@ -10,7 +10,7 @@
 
 namespace sw::dft::tests {
 
-TEST(PitchProcessorTest, DISABLED_plotting)
+TEST(PitchProcessorTest, plotting)
 {
     namespace plt = matplotlibcpp;
 
@@ -29,7 +29,7 @@ TEST(PitchProcessorTest, DISABLED_plotting)
     using Processor = PitchProcessor<double, 1>;
 
     Processor::TuningParameters tuneParameters;
-    Processor::ChannelParameters channelParameters{false, 12.0, 12.0, 1.0};
+    Processor::ChannelParameters channelParameters{std::monostate{}, 12.0, 12.0, 1.0};
 
     Processor processor(fftLength, oversampling);
 

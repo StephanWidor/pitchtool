@@ -90,7 +90,12 @@ sw::juce::pitchtool::Processor::PitchProcessor::ChannelParameters
   sw::juce::pitchtool::Processor::channelParameters(size_t channel)
 {
     const auto channelAsString = std::to_string(channel);
-    return {parameterValue<bool>("autoTune_" + channelAsString), parameterValue<float>("pitchShift_" + channelAsString),
+
+    tuning::Type tuningType;
+    if (parameterValue<bool>("autoTune_" + channelAsString))
+        tuningType = tuning::AutoTune{};
+
+    return {tuningType, parameterValue<float>("pitchShift_" + channelAsString),
             parameterValue<float>("formantsShift_" + channelAsString),
             parameterValue<float>("mixGain_" + channelAsString)};
 }

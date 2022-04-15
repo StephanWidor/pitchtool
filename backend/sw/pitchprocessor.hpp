@@ -1,5 +1,6 @@
 #pragma once
 #include "sw/basics/ranges.hpp"
+#include "sw/basics/variant.hpp"
 #include "sw/containers/spinlockedbuffer.hpp"
 #include "sw/containers/utils.hpp"
 #include "sw/dft/spectrum.hpp"
@@ -8,6 +9,7 @@
 #include "sw/phases.hpp"
 #include "sw/signals.hpp"
 #include <cstring>
+#include <variant>
 
 namespace sw {
 
@@ -77,6 +79,15 @@ private:
 
 }    // namespace detail
 
+namespace tuning {
+
+struct AutoTune
+{};
+
+using Type = std::variant<std::monostate, AutoTune, Note>;
+
+}    // namespace tuning
+
 template<std::floating_point F, std::uint8_t NumChannels>
 class PitchProcessor
 {
@@ -109,7 +120,7 @@ public:
 
     struct ChannelParameters
     {
-        bool autoTune{false};
+        tuning::Type tuningType;
         F pitchShift{math::zero<F>};
         F formantsShift{math::zero<F>};
         F mixGain{math::zero<F>};
@@ -145,33 +156,25 @@ public:
             });
         };
 
-        const auto autoTuneFactor = [&]() {
-            const auto note = toNote(m_inputState.fundamentalFrequency.load(), tuneParameters.standardPitch);
-            const auto envelopeFactor = m_tuningEnvelope.process(note, tuneParameters.attackTime, timeDiff);
-            if (m_inputState.fundamentalFrequency <= math::zero<F>)
-                return math::one<F>;
-            const auto noteFrequency = toFrequency(note, tuneParameters.standardPitch);
-            const auto tunedFrequency =
-              std::pow(static_cast<F>(2), envelopeFactor * std::log2(m_inputState.fundamentalFrequency) +
-                                            (math::one<F> - envelopeFactor) * std::log2(noteFrequency));
-            return tunedFrequency / m_inputState.fundamentalFrequency;
+        const auto tuningFactor = [&](const tuning::Type &type, detail::TuningEnvelope<F> &tuningEnvelope) {
+            const auto noteFactor = [&](const Note &note) {
+                const auto envelopeFactor = tuningEnvelope.process(note, tuneParameters.attackTime, timeDiff);
+                if (m_inputState.fundamentalFrequency <= math::zero<F>)
+                    return math::one<F>;
+                const auto noteFrequency = toFrequency(note, tuneParameters.standardPitch);
+                const auto tunedFrequency =
+                  std::pow(static_cast<F>(2), envelopeFactor * std::log2(m_inputState.fundamentalFrequency) +
+                                                (math::one<F> - envelopeFactor) * std::log2(noteFrequency));
+                return tunedFrequency / m_inputState.fundamentalFrequency;
+            };
+            return std::visit(overloaded{[](std::monostate) { return math::one<F>; },
+                                         [&](tuning::AutoTune) {
+                                             return noteFactor(toNote(m_inputState.fundamentalFrequency.load(),
+                                                                      tuneParameters.standardPitch));
+                                         },
+                                         [&](const Note &note) { return noteFactor(note); }},
+                              type);
         };
-
-        containers::ringPush(m_inputState.accumulator, signal);
-        std::transform(m_inputState.accumulator.begin(), m_inputState.accumulator.begin() + stepSize, o_signal.begin(),
-                       [dryMixGain](const auto sample) { return dryMixGain * sample; });
-
-        std::transform(m_signalWindow.begin(), m_signalWindow.end(),
-                       m_inputState.accumulator.end() - static_cast<int>(m_fftLength), m_processingSignal.begin(),
-                       std::multiplies());
-        m_fft.transform(m_processingSignal, m_coefficients, false);
-        dft::toSpectrumByPhase<F>(sampleRate, timeDiff, m_inputState.phases, m_coefficients, m_inputState.binSpectrum,
-                                  m_inputState.phases);
-        filterSpectrum(m_inputState);
-        m_inputState.fundamentalFrequency =
-          m_frequencyFilter.process(findFundamental<F>(m_inputState.spectrum.inBuffer()).frequency,
-                                    tuneParameters.frequencyAveragingTime, timeDiff);
-        const auto tuneFactor = autoTuneFactor();
 
         const auto processChannel = [&](const ChannelParameters &parameters, ChannelState &io_state) {
             if (math::isZero(parameters.mixGain))
@@ -180,8 +183,8 @@ public:
                 return;
             }
 
-            const auto pitchFactor = parameters.autoTune ? tuneFactor * semitonesToFactor(parameters.pitchShift) :
-                                                           semitonesToFactor(parameters.pitchShift);
+            const auto pitchFactor =
+              tuningFactor(parameters.tuningType, io_state.tuningEnvelope) * semitonesToFactor(parameters.pitchShift);
             io_state.fundamentalFrequency = pitchFactor * m_inputState.fundamentalFrequency;
             dft::shiftPitch<F>(pitchFactor, m_inputState.binSpectrum, io_state.binSpectrum);
 
@@ -217,6 +220,21 @@ public:
                                return mixGain * stateSample + outSample;
                            });
         };
+
+        containers::ringPush(m_inputState.accumulator, signal);
+        std::transform(m_inputState.accumulator.begin(), m_inputState.accumulator.begin() + stepSize, o_signal.begin(),
+                       [dryMixGain](const auto sample) { return dryMixGain * sample; });
+
+        std::transform(m_signalWindow.begin(), m_signalWindow.end(),
+                       m_inputState.accumulator.end() - static_cast<int>(m_fftLength), m_processingSignal.begin(),
+                       std::multiplies());
+        m_fft.transform(m_processingSignal, m_coefficients, false);
+        dft::toSpectrumByPhase<F>(sampleRate, timeDiff, m_inputState.phases, m_coefficients, m_inputState.binSpectrum,
+                                  m_inputState.phases);
+        filterSpectrum(m_inputState);
+        m_inputState.fundamentalFrequency =
+          m_frequencyFilter.process(findFundamental<F>(m_inputState.spectrum.inBuffer()).frequency,
+                                    tuneParameters.frequencyAveragingTime, timeDiff);
 
         for (auto i = 0u; i < NumChannels; ++i)
             processChannel(channelParameters[i], m_channelStates[i]);
@@ -267,6 +285,7 @@ private:
             , spectrum(dft::nyquistLength(fftLength), {})
         {}
 
+        detail::TuningEnvelope<F> tuningEnvelope;
         std::vector<SpectrumValue> binSpectrum;
         std::vector<F> phases;
         std::vector<F> accumulator;
@@ -289,7 +308,6 @@ private:
     std::array<ChannelState, NumChannels> m_channelStates;
 
     detail::FrequencyFilter<F> m_frequencyFilter{100u};
-    detail::TuningEnvelope<F> m_tuningEnvelope;
 
     // helpers
     std::vector<F> m_signalWindow, m_processingSignal, m_envelopeAlignmentFactors;

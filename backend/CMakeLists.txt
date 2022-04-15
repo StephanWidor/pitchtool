@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_library(${PROJECT_NAME} INTERFACE
     sw/basics/chrono.hpp
     sw/basics/math.hpp
+    sw/basics/variant.hpp
     sw/basics/ranges.hpp
     sw/containers/spinlockedbuffer.hpp
     sw/containers/utils.hpp

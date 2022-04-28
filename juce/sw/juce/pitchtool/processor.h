@@ -12,10 +12,8 @@ enum Type : int
 {
     NoTuning = 0,
     Midi = 1,
-    AutoTune = 2,
-    TypeCount = 3
+    AutoTune = 2
 };
-constexpr std::array<std::string_view, TypeCount> typeNames{"No Tuning", "Midi", "Auto Tune"};
 
 constexpr int processingToMidiChannel(const size_t channel)
 {

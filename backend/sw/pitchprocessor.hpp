@@ -85,6 +85,8 @@ struct AutoTune
 {};
 
 using Type = std::variant<std::monostate, AutoTune, Note>;
+constexpr auto numTypes = std::variant_size_v<Type>;
+constexpr std::array<std::string_view, numTypes> typeNames{"No Tuning", "Midi", "Auto Tune"};
 
 }    // namespace tuning
 
@@ -126,9 +128,19 @@ public:
         F mixGain{math::zero<F>};
     };
 
+    static constexpr auto defaultSampleRate{static_cast<F>(48000)};
+    static constexpr TuningParameters defaultTuningParameters{};
+    static constexpr auto defaultChannelParameters = containers::makeArray<NumChannels>([](const size_t channel) {
+        const auto mixGain = channel == 0u ? math::one<F> : math::zero<F>;
+        return ChannelParameters{{}, math::zero<F>, math::zero<F>, mixGain};
+    });
+    static constexpr auto defaultDryMixGain{math::zero<F>};
+
     void process(ranges::TypedInputRange<F> auto &&signal, ranges::TypedOutputRange<F> auto &&o_signal,
-                 const F sampleRate, const TuningParameters &tuneParameters,
-                 const std::array<ChannelParameters, NumChannels> &channelParameters, const F dryMixGain)
+                 const F sampleRate = defaultSampleRate,
+                 const TuningParameters &tuningParameters = defaultTuningParameters,
+                 const std::array<ChannelParameters, NumChannels> &channelParameters = defaultChannelParameters,
+                 const F dryMixGain = defaultDryMixGain)
     {
         const auto stepSize = static_cast<int>(this->stepSize());
         const auto timeDiff = static_cast<F>(stepSize) / sampleRate;
@@ -158,10 +170,10 @@ public:
 
         const auto tuningFactor = [&](const tuning::Type &type, detail::TuningEnvelope<F> &tuningEnvelope) {
             const auto noteFactor = [&](const Note &note) {
-                const auto envelopeFactor = tuningEnvelope.process(note, tuneParameters.attackTime, timeDiff);
+                const auto envelopeFactor = tuningEnvelope.process(note, tuningParameters.attackTime, timeDiff);
                 if (m_inputState.fundamentalFrequency <= math::zero<F>)
                     return math::one<F>;
-                const auto noteFrequency = toFrequency(note, tuneParameters.standardPitch);
+                const auto noteFrequency = toFrequency(note, tuningParameters.standardPitch);
                 const auto tunedFrequency =
                   std::pow(static_cast<F>(2), envelopeFactor * std::log2(m_inputState.fundamentalFrequency) +
                                                 (math::one<F> - envelopeFactor) * std::log2(noteFrequency));
@@ -170,7 +182,7 @@ public:
             return std::visit(overloaded{[](std::monostate) { return math::one<F>; },
                                          [&](tuning::AutoTune) {
                                              return noteFactor(toNote(m_inputState.fundamentalFrequency.load(),
-                                                                      tuneParameters.standardPitch));
+                                                                      tuningParameters.standardPitch));
                                          },
                                          [&](const Note &note) { return noteFactor(note); }},
                               type);
@@ -234,7 +246,7 @@ public:
         filterSpectrum(m_inputState);
         m_inputState.fundamentalFrequency =
           m_frequencyFilter.process(findFundamental<F>(m_inputState.spectrum.inBuffer()).frequency,
-                                    tuneParameters.frequencyAveragingTime, timeDiff);
+                                    tuningParameters.frequencyAveragingTime, timeDiff);
 
         for (auto i = 0u; i < NumChannels; ++i)
             processChannel(channelParameters[i], m_channelStates[i]);

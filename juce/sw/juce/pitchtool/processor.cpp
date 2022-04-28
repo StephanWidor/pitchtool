@@ -8,12 +8,15 @@
 
 namespace {
 
+using PitchProcessor = sw::juce::pitchtool::Processor::PitchProcessor;
+
 std::unique_ptr<::juce::AudioProcessorParameterGroup> createMainParameterGroup()
 {
     return std::make_unique<::juce::AudioProcessorParameterGroup>(
       "main", "Main", "|",
       std::make_unique<::juce::AudioParameterFloat>("dryMixGain", "Dry Mix",
-                                                    ::juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.0f),
+                                                    ::juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
+                                                    PitchProcessor::defaultDryMixGain),
       std::make_unique<::juce::AudioParameterBool>("frequenciesLogScale", "Frequencies Log Scale", true),
       std::make_unique<::juce::AudioParameterBool>("gainsLogScale", "Gains Log Scale", true));
 }
@@ -23,32 +26,34 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createTuningParameterGroup
     return std::make_unique<juce::AudioProcessorParameterGroup>(
       "tuning", "Tuning", "|",
       std::make_unique<::juce::AudioParameterFloat>("standardPitch", "Standard Pitch",
-                                                    ::juce::NormalisableRange<float>(400.0f, 480.0f, 1.0f), 440.0f),
+                                                    ::juce::NormalisableRange<float>(400.0f, 480.0f, 1.0f),
+                                                    PitchProcessor::defaultTuningParameters.standardPitch),
       std::make_unique<::juce::AudioParameterFloat>("frequencyAveragingTime", "Frequency Averaging Time",
-                                                    ::juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f), 0.5f),
+                                                    ::juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f),
+                                                    PitchProcessor::defaultTuningParameters.frequencyAveragingTime),
       std::make_unique<::juce::AudioParameterFloat>("attackTime", "Attack Time",
-                                                    ::juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f), 0.5f)
-
-    );
+                                                    ::juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f),
+                                                    PitchProcessor::defaultTuningParameters.attackTime));
 }
 
-std::unique_ptr<::juce::AudioProcessorParameterGroup> createChannelGroup(const size_t channel,
-                                                                         const float mixGainDefault)
+std::unique_ptr<::juce::AudioProcessorParameterGroup> createChannelGroup(const size_t channel)
 {
     const ::juce::String channelAsString(channel);
+    const auto &defaultParameters = PitchProcessor::defaultChannelParameters[channel];
     return std::make_unique<juce::AudioProcessorParameterGroup>(
       "channel_" + channelAsString, "Channel " + channelAsString, "|",
       std::make_unique<::juce::AudioParameterInt>(
         "tuning_" + channelAsString, "Tuning " + channelAsString, sw::juce::pitchtool::tuning::NoTuning,
         sw::juce::pitchtool::tuning::AutoTune, sw::juce::pitchtool::tuning::NoTuning),
       std::make_unique<::juce::AudioParameterFloat>("pitchShift_" + channelAsString, "Pitch Shift " + channelAsString,
-                                                    ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f), 0.0f),
-      std::make_unique<::juce::AudioParameterFloat>("formantsShift_" + channelAsString,
-                                                    "Formants Filter Shift " + channelAsString,
-                                                    ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f), 0.0f),
+                                                    ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f),
+                                                    defaultParameters.pitchShift),
+      std::make_unique<::juce::AudioParameterFloat>(
+        "formantsShift_" + channelAsString, "Formants Filter Shift " + channelAsString,
+        ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f), defaultParameters.formantsShift),
       std::make_unique<::juce::AudioParameterFloat>("mixGain_" + channelAsString, "Mix " + channelAsString,
                                                     ::juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
-                                                    mixGainDefault));
+                                                    defaultParameters.mixGain));
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout(const std::uint8_t numChannels)
@@ -58,7 +63,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout(const 
     parameters.push_back(createMainParameterGroup());
     parameters.push_back(createTuningParameterGroup());
     for (auto channel = 0u; channel < numChannels; ++channel)
-        parameters.push_back(createChannelGroup(channel, channel == 0u ? 1.0f : 0.0f));
+        parameters.push_back(createChannelGroup(channel));
     return {parameters.begin(), parameters.end()};
 }
 

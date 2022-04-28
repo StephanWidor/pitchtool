@@ -129,11 +129,11 @@ sw::juce::pitchtool::ChannelComponent::ChannelComponent(Processor &processor, si
     , m_pitchShiftAttachment(processor.state(), "pitchShift_" + ::juce::String(channel), m_pitchShiftSlider)
     , m_formantsShiftAttachment(processor.state(), "formantsShift_" + ::juce::String(channel), m_formantsShiftSlider)
 {
-    m_tuningComboBox.addItem(std::string(tuning::typeNames[tuning::NoTuning]), 1);
-    m_tuningComboBox.addItem(std::string(tuning::typeNames[tuning::Midi]) + " Ch" +
+    m_tuningComboBox.addItem(std::string(::sw::tuning::typeNames[tuning::NoTuning]), 1);
+    m_tuningComboBox.addItem(std::string(::sw::tuning::typeNames[tuning::Midi]) + " Ch" +
                                std::to_string(tuning::processingToMidiChannel(channel)),
                              2);
-    m_tuningComboBox.addItem(std::string(tuning::typeNames[tuning::AutoTune]), 3);
+    m_tuningComboBox.addItem(std::string(::sw::tuning::typeNames[tuning::AutoTune]), 3);
 
     // doesn't seem to be initially synced, so we do that by hand
     m_tuningComboBox.setSelectedId(processor.parameterValue<int>("tuning_" + std::to_string(channel)) + 1);

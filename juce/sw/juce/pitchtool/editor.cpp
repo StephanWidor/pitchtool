@@ -6,7 +6,8 @@
 
 namespace {
 
-constexpr float marginsSize{10.0f};
+constexpr auto marginsSize{10.0f};
+constexpr auto noteDisplayWidthFraction{1.0f / 13.0f};
 
 std::array<::juce::Colour, sw::juce::pitchtool::Processor::NumChannels> signalGraphColors{
   ::juce::Colour::fromRGBA(193u, 193u, 193u, 200u), ::juce::Colour::fromRGBA(100u, 100u, 100u, 100u)};
@@ -107,7 +108,7 @@ void sw::juce::pitchtool::TuningComponent::resized()
     ui::GroupComponent::resized();
 
     const auto localBounds = getLocalBounds().toFloat().reduced(marginsSize);
-    const auto noteDisplayWidth = 0.05f * localBounds.getWidth();
+    const auto noteDisplayWidth = noteDisplayWidthFraction * localBounds.getWidth();
     const auto otherWidth = localBounds.getWidth() - noteDisplayWidth;
 
     m_noteDisplay.setBounds(localBounds.withTrimmedLeft(otherWidth).toNearestInt());
@@ -152,7 +153,7 @@ void sw::juce::pitchtool::ChannelComponent::resized()
     ui::GroupComponent::resized();
 
     const auto localBounds = getLocalBounds().toFloat().reduced(marginsSize);
-    const auto noteDisplayWidth = 0.05f * localBounds.getWidth();
+    const auto noteDisplayWidth = noteDisplayWidthFraction * localBounds.getWidth();
     const auto otherWidth = localBounds.getWidth() - noteDisplayWidth;
 
     m_noteDisplay.setBounds(localBounds.withTrimmedLeft(otherWidth).toNearestInt());

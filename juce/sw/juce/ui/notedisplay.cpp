@@ -20,7 +20,7 @@ sw::juce::ui::NoteDisplay::NoteDisplay(Layout layout): m_layout(layout)
         else
         {
             const auto height = getHeight() / 12.0f;
-            m_label.setBounds(getLocalBounds().withY(nameIndex * height).withHeight(height).toNearestInt());
+            m_label.setBounds(getLocalBounds().withY((11.0f - nameIndex) * height).withHeight(height).toNearestInt());
         }
     }
     return m_label.getBounds().toFloat();
@@ -97,6 +97,6 @@ void sw::juce::ui::NoteDisplay::paint(::juce::Graphics &graphics)
 void sw::juce::ui::NoteDisplay::resized()
 {
     const auto labelBounds = setLabelBounds();
-    const auto fontSize = std::min(0.8f * labelBounds.getHeight(), 0.4f * labelBounds.getWidth());
+    const auto fontSize = std::min(labelBounds.getHeight(), 0.4f * labelBounds.getWidth());
     m_label.setFont(::juce::Font(fontSize, ::juce::Font::bold));
 }

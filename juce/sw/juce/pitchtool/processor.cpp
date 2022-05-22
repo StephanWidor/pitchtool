@@ -8,15 +8,13 @@
 
 namespace {
 
-using PitchProcessor = sw::juce::pitchtool::Processor::PitchProcessor;
-
 std::unique_ptr<::juce::AudioProcessorParameterGroup> createMainParameterGroup()
 {
     return std::make_unique<::juce::AudioProcessorParameterGroup>(
       "main", "Main", "|",
       std::make_unique<::juce::AudioParameterFloat>("dryMixGain", "Dry Mix",
                                                     ::juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
-                                                    PitchProcessor::defaultDryMixGain),
+                                                    ::sw::pitchtool::defaultDryMixGain<float>()),
       std::make_unique<::juce::AudioParameterBool>("frequenciesLogScale", "Frequencies Log Scale", true),
       std::make_unique<::juce::AudioParameterBool>("gainsLogScale", "Gains Log Scale", true));
 }
@@ -27,19 +25,20 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createTuningParameterGroup
       "tuning", "Tuning", "|",
       std::make_unique<::juce::AudioParameterFloat>("standardPitch", "Standard Pitch",
                                                     ::juce::NormalisableRange<float>(400.0f, 480.0f, 1.0f),
-                                                    PitchProcessor::defaultTuningParameters.standardPitch),
-      std::make_unique<::juce::AudioParameterFloat>("frequencyAveragingTime", "Frequency Averaging Time",
-                                                    ::juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f),
-                                                    PitchProcessor::defaultTuningParameters.frequencyAveragingTime),
+                                                    ::sw::pitchtool::defaultTuningParameters<float>().standardPitch),
+      std::make_unique<::juce::AudioParameterFloat>(
+        "frequencyAveragingTime", "Frequency Averaging Time", ::juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f),
+        ::sw::pitchtool::defaultTuningParameters<float>().frequencyAveragingTime),
       std::make_unique<::juce::AudioParameterFloat>("attackTime", "Attack Time",
                                                     ::juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f),
-                                                    PitchProcessor::defaultTuningParameters.attackTime));
+                                                    ::sw::pitchtool::defaultTuningParameters<float>().attackTime));
 }
 
 std::unique_ptr<::juce::AudioProcessorParameterGroup> createChannelGroup(const size_t channel)
 {
     const ::juce::String channelAsString(channel);
-    const auto &defaultParameters = PitchProcessor::defaultChannelParameters[channel];
+    const auto &defaultParameters =
+      ::sw::pitchtool::defaultChannelParameters<float, sw::juce::pitchtool::Processor::NumChannels>()[channel];
     return std::make_unique<juce::AudioProcessorParameterGroup>(
       "channel_" + channelAsString, "Channel " + channelAsString, "|",
       std::make_unique<::juce::AudioParameterInt>(
@@ -112,24 +111,23 @@ bool sw::juce::pitchtool::Processor::isBusesLayoutSupported(const BusesLayout &l
            layouts.getMainOutputChannelSet() == ::juce::AudioChannelSet::mono();
 }
 
-sw::juce::pitchtool::Processor::PitchProcessor::TuningParameters sw::juce::pitchtool::Processor::tuneParameters()
+sw::pitchtool::TuningParameters<float> sw::juce::pitchtool::Processor::tuningParameters()
 {
     return {parameterValue<float>("standardPitch"), parameterValue<float>("frequencyAveragingTime"),
             parameterValue<float>("attackTime")};
 }
 
-sw::juce::pitchtool::Processor::PitchProcessor::ChannelParameters
-  sw::juce::pitchtool::Processor::channelParameters(size_t channel)
+sw::pitchtool::ChannelParameters<float> sw::juce::pitchtool::Processor::channelParameters(size_t channel)
 {
     const auto channelAsString = std::to_string(channel);
 
     const auto tuningType = [&]() {
         const auto typeAsInt = parameterValue<int>("tuning_" + channelAsString);
-        sw::tuning::Type type;
+        ::sw::pitchtool::tuning::Type type;
         if (typeAsInt == tuning::Midi && m_currentMidiNotes[channel] != std::nullopt)
             type = *m_currentMidiNotes[channel];
         else if (typeAsInt == tuning::AutoTune)
-            type = sw::tuning::AutoTune{};
+            type = ::sw::pitchtool::tuning::AutoTune{};
         return type;
     };
 
@@ -159,7 +157,7 @@ void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &au
         else
         {
             m_pitchProcessor.process(signal, m_processedSignalBuffer, static_cast<float>(getSampleRate()),
-                                     tuneParameters(), allChannelParameters(), parameterValue<float>("dryMixGain"));
+                                     tuningParameters(), allChannelParameters(), parameterValue<float>("dryMixGain"));
         }
 
         m_newDataBroadCaster.sendChangeMessage();

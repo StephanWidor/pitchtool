@@ -5,104 +5,27 @@
 #include "sw/containers/utils.hpp"
 #include "sw/dft/spectrum.hpp"
 #include "sw/dft/transform.hpp"
+#include "sw/frequencyfilter.hpp"
 #include "sw/notes.hpp"
 #include "sw/phases.hpp"
+#include "sw/pitchtool/types.hpp"
 #include "sw/signals.hpp"
 #include <cstring>
 #include <variant>
 
-namespace sw {
-
-namespace detail {
-
-template<std::floating_point F>
-class FrequencyFilter
-{
-public:
-    FrequencyFilter(const size_t initialCapacity) { m_buffer.reserve(initialCapacity); }
-
-    F process(const F frequency, const F averagingTime, const F sampleTime)
-    {
-        assert(averagingTime >= math::zero<F>);
-
-        if (frequency <= math::zero<F>)
-        {
-            m_buffer.clear();
-            return math::zero<F>;
-        }
-
-        m_buffer.push_back(frequency);
-        m_size = std::max(math::one<size_t>, static_cast<size_t>(std::round(averagingTime / sampleTime)));
-
-        if (m_size < m_buffer.size())
-            m_buffer.erase(m_buffer.begin(), m_buffer.begin() + static_cast<int>(m_buffer.size() - m_size));
-
-        return geometricAverage<F>(m_buffer);
-    }
-
-    void clearBuffer() { m_buffer.clear(); }
-
-private:
-    void resize(const size_t newSize)
-    {
-        m_size = newSize;
-        if (m_size < m_buffer.size())
-            m_buffer.erase(m_buffer.begin(), m_buffer.begin() + static_cast<int>(m_buffer.size() - m_size));
-    }
-
-    size_t m_size{0u};
-    std::vector<F> m_buffer;
-};
-
-template<std::floating_point F>
-class TuningEnvelope
-{
-public:
-    F process(const Note note, const F attackTime, const F timeDiff)
-    {
-        assert(math::zero<F> <= attackTime);
-        assert(timeDiff > math::zero<F>);
-        if (note.name == Note::Name::Invalid || note.name != m_currentNote.name || note.level != m_currentNote.level)
-            m_elapsed = math::zero<F>;
-        else
-            m_elapsed += timeDiff;
-        m_currentNote = note;
-        if (m_elapsed < attackTime)
-            return math::oneHalf<F> * std::cos(math::pi<F> * m_elapsed / attackTime) + math::oneHalf<F>;
-        return math::zero<F>;
-    }
-
-private:
-    Note m_currentNote;
-    F m_elapsed{math::zero<F>};
-};
-
-}    // namespace detail
-
-namespace tuning {
-
-struct AutoTune
-{};
-
-using Type = std::variant<std::monostate, AutoTune, Note>;
-constexpr auto numTypes = std::variant_size_v<Type>;
-constexpr std::array<std::string_view, numTypes> typeNames{"No Tuning", "Midi", "Auto Tune"};
-
-}    // namespace tuning
+namespace sw::pitchtool {
 
 template<std::floating_point F, std::uint8_t NumChannels>
-class PitchProcessor
+class Processor
 {
 public:
-    using SpectrumValue = sw::SpectrumValue<F>;
-
-    PitchProcessor(const size_t fftLength, const size_t overSampling)
+    Processor(const size_t fftLength, const size_t overSampling)
         : m_fftLength(fftLength)
         , m_overSampling(overSampling)
         , m_fft(fftLength)
         , m_inputState(fftLength)
         , m_channelStates(
-            containers::makeArray<NumChannels>([fftLength](const size_t) { return ChannelState(fftLength); }))
+            containers::makeArray<NumChannels>([fftLength](const size_t) { return ChannelState<F>(fftLength); }))
         , m_signalWindow(makeVonHannWindow<F>(fftLength))
         , m_processingSignal(fftLength, math::zero<F>)
         , m_envelopeAlignmentFactors(dft::nyquistLength(fftLength), math::one<F>)
@@ -113,34 +36,9 @@ public:
                fftLength == (fftLength / overSampling) * overSampling);
     }
 
-    struct TuningParameters
-    {
-        F standardPitch{static_cast<F>(440)};
-        F frequencyAveragingTime{static_cast<F>(0.1)};
-        F attackTime{static_cast<F>(0.1)};
-    };
-
-    struct ChannelParameters
-    {
-        tuning::Type tuningType;
-        F pitchShift{math::zero<F>};
-        F formantsShift{math::zero<F>};
-        F mixGain{math::zero<F>};
-    };
-
-    static constexpr auto defaultSampleRate{static_cast<F>(48000)};
-    static constexpr TuningParameters defaultTuningParameters{};
-    static constexpr auto defaultChannelParameters = containers::makeArray<NumChannels>([](const size_t channel) {
-        const auto mixGain = channel == 0u ? math::one<F> : math::zero<F>;
-        return ChannelParameters{{}, math::zero<F>, math::zero<F>, mixGain};
-    });
-    static constexpr auto defaultDryMixGain{math::zero<F>};
-
     void process(ranges::TypedInputRange<F> auto &&signal, ranges::TypedOutputRange<F> auto &&o_signal,
-                 const F sampleRate = defaultSampleRate,
-                 const TuningParameters &tuningParameters = defaultTuningParameters,
-                 const std::array<ChannelParameters, NumChannels> &channelParameters = defaultChannelParameters,
-                 const F dryMixGain = defaultDryMixGain)
+                 const F sampleRate, const TuningParameters<F> &tuningParameters,
+                 const std::array<ChannelParameters<F>, NumChannels> &channelParameters, const F dryMixGain)
     {
         const auto stepSize = static_cast<int>(this->stepSize());
         const auto timeDiff = static_cast<F>(stepSize) / sampleRate;
@@ -148,8 +46,8 @@ public:
         assert(std::ranges::ssize(signal) == stepSize);
         assert(std::ranges::ssize(o_signal) == stepSize);
 
-        const auto alignFormants = [&](const std::vector<SpectrumValue> &spectrum,
-                                       std::vector<SpectrumValue> &io_spectrumToAlign) {
+        const auto alignFormants = [&](const std::vector<SpectrumValue<F>> &spectrum,
+                                       std::vector<SpectrumValue<F>> &io_spectrumToAlign) {
             envelopeAlignmentFactors<F>(gains<F>(spectrum), gains<F>(io_spectrumToAlign), m_envelopeAlignmentFactors);
             std::transform(io_spectrumToAlign.begin(), io_spectrumToAlign.end(), m_envelopeAlignmentFactors.begin(),
                            io_spectrumToAlign.begin(), [](const auto &spectrumValue, const F factor) {
@@ -157,8 +55,8 @@ public:
                            });
         };
 
-        const auto filterSpectrum = [&](ChannelState &io_state) {
-            io_state.spectrum.apply([&](std::vector<SpectrumValue> &o_buffer) {
+        const auto filterSpectrum = [&](ChannelState<F> &io_state) {
+            io_state.spectrum.apply([&](std::vector<SpectrumValue<F>> &o_buffer) {
                 o_buffer.clear();
                 std::copy_if(io_state.binSpectrum.begin() + 1, io_state.binSpectrum.end(), std::back_inserter(o_buffer),
                              [zeroGainThresholdLinear = dBToFactor(static_cast<F>(-60))](const auto &value) {
@@ -168,7 +66,7 @@ public:
             });
         };
 
-        const auto tuningFactor = [&](const tuning::Type &type, detail::TuningEnvelope<F> &tuningEnvelope) {
+        const auto tuningFactor = [&](const tuning::Type &type, TuningNoteEnvelope<F> &tuningEnvelope) {
             const auto noteFactor = [&](const Note &note) {
                 const auto envelopeFactor = tuningEnvelope.process(note, tuningParameters.attackTime, timeDiff);
                 if (m_inputState.fundamentalFrequency <= math::zero<F>)
@@ -188,10 +86,10 @@ public:
                               type);
         };
 
-        const auto processChannel = [&](const ChannelParameters &parameters, ChannelState &io_state) {
+        const auto processChannel = [&](const ChannelParameters<F> &parameters, ChannelState<F> &io_state) {
             if (math::isZero(parameters.mixGain))
             {
-                clear(io_state);
+                io_state.clear();
                 return;
             }
 
@@ -263,7 +161,7 @@ public:
         m_inputState.spectrum.clear();
 
         for (auto &channelState : m_channelStates)
-            clear(channelState);
+            channelState.clear();
 
         std::copy(m_inputState.accumulator.begin(), m_inputState.accumulator.begin() + stepSize, o_signal.begin());
     }
@@ -276,11 +174,11 @@ public:
 
     size_t overlapSize() const { return m_fftLength - stepSize(); }
 
-    const std::vector<SpectrumValue> &inSpectrum() const { return m_inputState.spectrum.outBuffer(); }
+    const std::vector<SpectrumValue<F>> &inSpectrum() const { return m_inputState.spectrum.outBuffer(); }
 
     F inFundamentalFrequency() const { return m_inputState.fundamentalFrequency; }
 
-    const std::vector<SpectrumValue> &outSpectrum(const size_t channel) const
+    const std::vector<SpectrumValue<F>> &outSpectrum(const size_t channel) const
     {
         return m_channelStates[channel].spectrum.outBuffer();
     }
@@ -288,43 +186,19 @@ public:
     F outFundamentalFrequency(const size_t channel) const { return m_channelStates[channel].fundamentalFrequency; }
 
 private:
-    struct ChannelState
-    {
-        ChannelState(const size_t fftLength)
-            : binSpectrum(dft::nyquistLength(fftLength))
-            , phases(dft::nyquistLength(fftLength))
-            , accumulator(fftLength)
-            , spectrum(dft::nyquistLength(fftLength), {})
-        {}
-
-        detail::TuningEnvelope<F> tuningEnvelope;
-        std::vector<SpectrumValue> binSpectrum;
-        std::vector<F> phases;
-        std::vector<F> accumulator;
-        containers::SpinLockedBuffer<SpectrumValue> spectrum;
-        std::atomic<F> fundamentalFrequency{math::zero<F>};
-    };
-
-    void clear(ChannelState &state)
-    {
-        state.fundamentalFrequency = math::zero<F>;
-        state.spectrum.clear();
-        containers::ringPush(state.accumulator, math::zero<F>, fftLength());
-    }
-
     size_t m_fftLength{0u};
     size_t m_overSampling{0u};
     sw::dft::FFT<F> m_fft;
 
-    ChannelState m_inputState;
-    std::array<ChannelState, NumChannels> m_channelStates;
+    ChannelState<F> m_inputState;
+    std::array<ChannelState<F>, NumChannels> m_channelStates;
 
-    detail::FrequencyFilter<F> m_frequencyFilter{100u};
+    FrequencyFilter<F> m_frequencyFilter{100u};
 
     // helpers
     std::vector<F> m_signalWindow, m_processingSignal, m_envelopeAlignmentFactors;
     std::vector<std::complex<F>> m_coefficients;
-    std::vector<SpectrumValue> m_formantsSpectrum;
+    std::vector<SpectrumValue<F>> m_formantsSpectrum;
 };
 
-}    // namespace sw
+}    // namespace sw::pitchtool

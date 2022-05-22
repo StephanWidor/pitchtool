@@ -2,7 +2,7 @@
 #include <functional>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <sw/containers/spinlockedbuffer.hpp>
-#include <sw/pitchprocessor.hpp>
+#include <sw/pitchtool/processor.hpp>
 
 namespace sw::juce::pitchtool {
 
@@ -31,7 +31,6 @@ class Processor : public ::juce::AudioProcessor
 {
 public:
     static constexpr std::uint8_t NumChannels{2u};
-    using PitchProcessor = sw::PitchProcessor<float, NumChannels>;
 
     Processor();
     ~Processor() override {}
@@ -77,7 +76,7 @@ public:
     const std::vector<float> &inputBuffer() const { return m_inputBuffer.outBuffer(); }
     const std::vector<float> &outputBuffer() const { return m_outputBuffer.outBuffer(); }
 
-    const PitchProcessor &pitchProcessor() const { return m_pitchProcessor; }
+    const ::sw::pitchtool::Processor<float, NumChannels> &pitchProcessor() const { return m_pitchProcessor; }
 
     ::juce::AudioProcessorValueTreeState &state() { return m_state; }
 
@@ -88,11 +87,11 @@ public:
         return static_cast<T>(parameter->convertFrom0to1(parameter->getValue()));
     }
 
-    PitchProcessor::TuningParameters tuneParameters();
+    ::sw::pitchtool::TuningParameters<float> tuningParameters();
 
-    PitchProcessor::ChannelParameters channelParameters(size_t channel);
+    ::sw::pitchtool::ChannelParameters<float> channelParameters(size_t channel);
 
-    std::array<PitchProcessor::ChannelParameters, NumChannels> allChannelParameters()
+    std::array<::sw::pitchtool::ChannelParameters<float>, NumChannels> allChannelParameters()
     {
         return containers::makeArray<NumChannels>([&](const auto channel) { return channelParameters(channel); });
     }
@@ -111,7 +110,7 @@ private:
     size_t m_numNewProcessingSamples{0u};
     size_t m_numOutSamples{0u};
 
-    PitchProcessor m_pitchProcessor{2048u, 4u};
+    ::sw::pitchtool::Processor<float, NumChannels> m_pitchProcessor{2048u, 4u};
     std::vector<float> m_processedSignalBuffer;
 
     ::juce::AudioProcessorValueTreeState m_state;

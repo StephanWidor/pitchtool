@@ -66,28 +66,20 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout(const 
     return {parameters.begin(), parameters.end()};
 }
 
-void processMidiNotes(const ::juce::MidiBuffer &midiBuffer, const bool byPassed,
+void processMidiNotes(const ::juce::MidiBuffer &midiBuffer,
                       std::array<std::optional<sw::Note>, sw::juce::pitchtool::Processor::NumChannels> &o_midiNotes)
 {
     using namespace sw::juce::pitchtool;
-    if (byPassed)
+    for (const auto &metaMessage : midiBuffer)
     {
-        for (auto &note : o_midiNotes)
-            note = std::nullopt;
-    }
-    else
-    {
-        for (const auto &metaMessage : midiBuffer)
+        const auto message = metaMessage.getMessage();
+        const auto channel = tuning::midiToProcessingChannel(message.getChannel());
+        if (channel < Processor::NumChannels)
         {
-            const auto message = metaMessage.getMessage();
-            const auto channel = tuning::midiToProcessingChannel(message.getChannel());
-            if (channel < Processor::NumChannels)
-            {
-                if (message.isNoteOff())
-                    o_midiNotes[channel] = std::nullopt;
-                else if (message.isNoteOn())
-                    o_midiNotes[channel] = sw::fromMidi(message.getNoteNumber());
-            }
+            if (message.isNoteOff())
+                o_midiNotes[channel] = std::nullopt;
+            else if (message.isNoteOn())
+                o_midiNotes[channel] = sw::fromMidi(message.getNoteNumber());
         }
     }
 }
@@ -98,8 +90,8 @@ sw::juce::pitchtool::Processor::Processor()
     : ::juce::AudioProcessor(BusesProperties()
                                .withInput("Input", ::juce::AudioChannelSet::mono(), true)
                                .withOutput("Output", ::juce::AudioChannelSet::mono(), true))
-    , m_processedSignalBuffer(m_pitchProcessor.stepSize())
-    , m_state(*this, nullptr, "state", createParameterLayout(NumChannels))
+    , m_processingBuffer(m_signalBufferSize, m_pitchProcessor.stepSize())
+    , m_parameterState(*this, nullptr, "state", createParameterLayout(NumChannels))
 {
     setLatencySamples(m_pitchProcessor.overlapSize());
 }
@@ -136,57 +128,35 @@ sw::pitchtool::ChannelParameters<float> sw::juce::pitchtool::Processor::channelP
 }
 
 void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &audioBuffer,
-                                                  ::juce::MidiBuffer &midiBuffer, const bool byPassed)
-{
-    processMidiNotes(midiBuffer, byPassed, m_currentMidiNotes);
-
-    const auto numSamples = static_cast<size_t>(audioBuffer.getNumSamples());
-    const auto stepSize = m_pitchProcessor.stepSize();
-
-    m_inputBuffer.ringPush(std::span(audioBuffer.getReadPointer(0), numSamples));
-
-    for (m_numNewProcessingSamples += numSamples; m_numNewProcessingSamples >= stepSize;
-         m_numNewProcessingSamples -= stepSize)
-    {
-        const auto signal =
-          std::span(m_inputBuffer.inBuffer().end() - static_cast<int>(m_numNewProcessingSamples), stepSize);
-
-        if (byPassed)
-            m_pitchProcessor.processByPassed(signal, m_processedSignalBuffer);
-        else
-        {
-            m_pitchProcessor.process(signal, m_processedSignalBuffer, static_cast<float>(getSampleRate()),
-                                     tuningParameters(), allChannelParameters(), parameterValue<float>("dryMixGain"));
-        }
-
-        m_newDataBroadCaster.sendChangeMessage();
-
-        m_outputBuffer.ringPush(m_processedSignalBuffer);
-        m_numOutSamples += stepSize;
-    }
-
-    if (m_numOutSamples < numSamples)
-        m_numOutSamples = numSamples;
-
-    assert(m_numOutSamples <= m_outputBuffer.inBuffer().size());
-    const auto outStart = m_outputBuffer.inBuffer().end() - static_cast<int>(m_numOutSamples);
-    std::copy(outStart, outStart + audioBuffer.getNumSamples(),
-              std::span(audioBuffer.getWritePointer(0), static_cast<size_t>(audioBuffer.getNumSamples())).begin());
-
-    assert(m_numOutSamples >= numSamples);
-    m_numOutSamples -= numSamples;
-}
-
-void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &audioBuffer,
                                                   ::juce::MidiBuffer &midiBuffer)
 {
-    processBlock(audioBuffer, midiBuffer, false);
+    processMidiNotes(midiBuffer, m_currentMidiNotes);
+
+    const auto processStep = [&](auto &&inStepSignal, auto &&outStepSignal) {
+        m_pitchProcessor.process(inStepSignal, outStepSignal, static_cast<float>(getSampleRate()), tuningParameters(),
+                                 allChannelParameters(), parameterValue<float>("dryMixGain"));
+        m_newDataBroadCaster.sendChangeMessage();
+    };
+
+    const auto numSamples = audioBuffer.getNumSamples();
+    m_processingBuffer.process(std::span(audioBuffer.getReadPointer(0), numSamples),
+                               std::span(audioBuffer.getWritePointer(0), numSamples), processStep);
 }
 
 void sw::juce::pitchtool::Processor::processBlockBypassed(::juce::AudioBuffer<float> &audioBuffer,
                                                           ::juce::MidiBuffer &midiBuffer)
 {
-    processBlock(audioBuffer, midiBuffer, true);
+    for (auto &note : m_currentMidiNotes)
+        note = std::nullopt;
+
+    const auto processStep = [&](auto &&inStepSignal, auto &&outStepSignal) {
+        m_pitchProcessor.processByPassed(inStepSignal, outStepSignal);
+        m_newDataBroadCaster.sendChangeMessage();
+    };
+
+    const auto numSamples = audioBuffer.getNumSamples();
+    m_processingBuffer.process(std::span(audioBuffer.getReadPointer(0), numSamples),
+                               std::span(audioBuffer.getWritePointer(0), numSamples), processStep);
 }
 
 ::juce::AudioProcessorEditor *sw::juce::pitchtool::Processor::createEditor()
@@ -196,14 +166,14 @@ void sw::juce::pitchtool::Processor::processBlockBypassed(::juce::AudioBuffer<fl
 
 void sw::juce::pitchtool::Processor::getStateInformation(::juce::MemoryBlock &destData)
 {
-    if (const auto xmlState = m_state.copyState().createXml())
+    if (const auto xmlState = m_parameterState.copyState().createXml())
         copyXmlToBinary(*xmlState, destData);
 }
 
 void sw::juce::pitchtool::Processor::setStateInformation(const void *data, int sizeInBytes)
 {
     if (const auto xmlState = getXmlFromBinary(data, sizeInBytes))
-        m_state.replaceState(::juce::ValueTree::fromXml(*xmlState));
+        m_parameterState.replaceState(::juce::ValueTree::fromXml(*xmlState));
 }
 
 juce::AudioProcessor *JUCE_CALLTYPE createPluginFilter()

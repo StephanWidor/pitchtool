@@ -39,8 +39,8 @@ sw::juce::pitchtool::PlotComponent::PlotComponent(sw::juce::pitchtool::Processor
                                     ui::plot::signal::numBlocks(m_signalPlotLength, m_signalPlotBlockSize))})
     , m_spectrumPlot(ui::plot::spectrum::xRange(processor.parameterValue<bool>("frequenciesLogScale")),
                      ui::plot::spectrum::yRange(processor.parameterValue<bool>("gainsLogScale")), makeSpectrumGraphs())
-    , m_frequenciesLogScaleAttachment(processor.state(), "frequenciesLogScale", m_frequenciesLogScaleButton)
-    , m_gainsLogScaleAttachment(processor.state(), "gainsLogScale", m_gainsLogScaleButton)
+    , m_frequenciesLogScaleAttachment(processor.parameterState(), "frequenciesLogScale", m_frequenciesLogScaleButton)
+    , m_gainsLogScaleAttachment(processor.parameterState(), "gainsLogScale", m_gainsLogScaleButton)
 {
     addAndMakeVisible(m_signalPlot);
     addAndMakeVisible(m_spectrumPlot);
@@ -125,9 +125,9 @@ void sw::juce::pitchtool::TuningComponent::setFrequency(const float frequency, c
 
 sw::juce::pitchtool::ChannelComponent::ChannelComponent(Processor &processor, size_t channel)
     : ui::GroupComponent("Channel " + std::to_string(channel), marginsSize, true)
-    , m_tuningAttachment(processor.state(), "tuning_" + ::juce::String(channel), m_tuningComboBox)
-    , m_pitchShiftAttachment(processor.state(), "pitchShift_" + ::juce::String(channel), m_pitchShiftSlider)
-    , m_formantsShiftAttachment(processor.state(), "formantsShift_" + ::juce::String(channel), m_formantsShiftSlider)
+    , m_tuningAttachment(processor.parameterState(), "tuning_" + ::juce::String(channel), m_tuningComboBox)
+    , m_pitchShiftAttachment(processor.parameterState(), "pitchShift_" + ::juce::String(channel), m_pitchShiftSlider)
+    , m_formantsShiftAttachment(processor.parameterState(), "formantsShift_" + ::juce::String(channel), m_formantsShiftSlider)
 {
     m_tuningComboBox.addItem(std::string(::sw::pitchtool::tuning::typeNames[tuning::NoTuning]), 1);
     m_tuningComboBox.addItem(std::string(::sw::pitchtool::tuning::typeNames[tuning::Midi]) + " Ch" +
@@ -200,10 +200,10 @@ sw::juce::pitchtool::Editor::Editor(sw::juce::pitchtool::Processor &processor)
     : ::juce::AudioProcessorEditor(&processor)
     , m_processor(processor)
     , m_plotComponent(processor)
-    , m_tuningComponent(processor.state())
+    , m_tuningComponent(processor.parameterState())
     , m_channelComponents(containers::makeArray<Processor::NumChannels>(
         [&](const size_t channel) { return ChannelComponent(processor, channel); }))
-    , m_mixComponent(processor.state())
+    , m_mixComponent(processor.parameterState())
 {
     setSize(600, 800);
     setResizeLimits(300, 400, 900, 1200);

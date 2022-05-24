@@ -1,8 +1,8 @@
 #pragma once
-#include <functional>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <sw/containers/spinlockedbuffer.hpp>
 #include <sw/pitchtool/processor.hpp>
+#include <sw/processingbuffer.hpp>
 
 namespace sw::juce::pitchtool {
 
@@ -73,17 +73,17 @@ public:
 
     size_t signalBufferSize() const { return m_signalBufferSize; }
 
-    const std::vector<float> &inputBuffer() const { return m_inputBuffer.outBuffer(); }
-    const std::vector<float> &outputBuffer() const { return m_outputBuffer.outBuffer(); }
+    const std::vector<float> &inputBuffer() const { return m_processingBuffer.inputBuffer(); }
+    const std::vector<float> &outputBuffer() const { return m_processingBuffer.outputBuffer(); }
 
     const ::sw::pitchtool::Processor<float, NumChannels> &pitchProcessor() const { return m_pitchProcessor; }
 
-    ::juce::AudioProcessorValueTreeState &state() { return m_state; }
+    ::juce::AudioProcessorValueTreeState &parameterState() { return m_parameterState; }
 
     template<typename T>
     T parameterValue(const std::string &parameterName)
     {
-        const auto parameter = m_state.getParameter(parameterName);
+        const auto parameter = m_parameterState.getParameter(parameterName);
         return static_cast<T>(parameter->convertFrom0to1(parameter->getValue()));
     }
 
@@ -97,23 +97,13 @@ public:
     }
 
 private:
-    void processBlock(::juce::AudioBuffer<float> &, ::juce::MidiBuffer &, bool byPassed);
-
-    const size_t m_signalBufferSize{48000u};
-    containers::SpinLockedBuffer<float> m_inputBuffer{m_signalBufferSize, 0.0f};
-    containers::SpinLockedBuffer<float> m_outputBuffer{m_signalBufferSize, 0.0f};
-
+    static constexpr size_t m_signalBufferSize{48000u};
     std::array<std::optional<Note>, NumChannels> m_currentMidiNotes;
+    ::sw::pitchtool::Processor<float, NumChannels> m_pitchProcessor{2048u, 4u};
+    ::sw::ProcessingBuffer<float> m_processingBuffer;
 
     ::juce::ChangeBroadcaster m_newDataBroadCaster;
-
-    size_t m_numNewProcessingSamples{0u};
-    size_t m_numOutSamples{0u};
-
-    ::sw::pitchtool::Processor<float, NumChannels> m_pitchProcessor{2048u, 4u};
-    std::vector<float> m_processedSignalBuffer;
-
-    ::juce::AudioProcessorValueTreeState m_state;
+    ::juce::AudioProcessorValueTreeState m_parameterState;
 
     //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Processor)
 };

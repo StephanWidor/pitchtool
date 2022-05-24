@@ -19,6 +19,7 @@ add_library(${PROJECT_NAME} INTERFACE
     sw/phases.hpp
     sw/pitchtool/processor.hpp
     sw/pitchtool/types.hpp
+    sw/processingbuffer.hpp
     sw/signals.hpp
     sw/spectrum.hpp
     sw/tuningnoteenvelope.hpp

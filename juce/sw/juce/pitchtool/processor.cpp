@@ -101,7 +101,6 @@ sw::juce::pitchtool::Processor::Processor()
     , m_processedSignalBuffer(m_pitchProcessor.stepSize())
     , m_state(*this, nullptr, "state", createParameterLayout(NumChannels))
 {
-    m_numOutSamples = m_pitchProcessor.stepSize();
     setLatencySamples(m_pitchProcessor.overlapSize());
 }
 
@@ -165,6 +164,9 @@ void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &au
         m_outputBuffer.ringPush(m_processedSignalBuffer);
         m_numOutSamples += stepSize;
     }
+
+    if (m_numOutSamples < numSamples)
+        m_numOutSamples = numSamples;
 
     assert(m_numOutSamples <= m_outputBuffer.inBuffer().size());
     const auto outStart = m_outputBuffer.inBuffer().end() - static_cast<int>(m_numOutSamples);

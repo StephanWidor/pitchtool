@@ -21,20 +21,28 @@ template<typename R, typename T>
 concept TypedOutputRange =
   std::ranges::output_range<R, T> && std::same_as<std::ranges::range_value_t<R>, std::decay_t<T>>;
 
+template<typename R>
+concept VectorConstructibleFromBeginAndEnd = std::ranges::range<R> and requires(R r)
+{
+    std::vector<std::ranges::range_value_t<R>>(std::ranges::begin(r), std::ranges::end(r));
+};
+
 template<std::ranges::input_range R>
 std::vector<std::ranges::range_value_t<R>> to_vector(R &&range)
 {
-    if constexpr (std::ranges::common_range<R>)
-        return std::vector<std::ranges::range_value_t<R>>(range.begin(), range.end());
+    if constexpr (VectorConstructibleFromBeginAndEnd<R>)
+        return std::vector<std::ranges::range_value_t<R>>(std::ranges::begin(range), std::ranges::end(range));
     else if constexpr (std::ranges::sized_range<R>)
     {
         std::vector<std::ranges::range_value_t<R>> vector(std::ranges::size(range));
-        std::ranges::copy(range, vector.begin());
+        std::ranges::copy(range, std::ranges::begin(vector));
+        return vector;
     }
     else
     {
         std::vector<std::ranges::range_value_t<R>> vector;
         std::ranges::copy(range, std::back_inserter(vector));
+        return vector;
     }
 }
 

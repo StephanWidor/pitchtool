@@ -50,8 +50,8 @@ public:
         m_numOutSamples -= numSamples;
     }
 
-    const std::vector<float> &inputBuffer() const { return m_inputBuffer.outBuffer(); }
-    const std::vector<float> &outputBuffer() const { return m_outputBuffer.outBuffer(); }
+    const std::vector<F> &inputBuffer() const { return m_inputBuffer.outBuffer(); }
+    const std::vector<F> &outputBuffer() const { return m_outputBuffer.outBuffer(); }
 
 private:
     containers::SpinLockedBuffer<F> m_inputBuffer;

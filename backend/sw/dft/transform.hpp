@@ -59,19 +59,19 @@ struct Processor<F, Algorithm::LinearTransform>
     static void run(std::vector<std::complex<F>> &inSwap, std::vector<std::complex<F>> &outSwap,
                     const UnitRootGetter unitRoot, bool useOMP)
     {
-        const auto N = inSwap.size();
-        assert(N == outSwap.size());
+        const auto N = std::ranges::ssize(inSwap);
+        assert(N == std::ranges::ssize(outSwap));
 
         const auto processOutVal = [&](const auto k) {
-            auto &outVal = outSwap[k] = 0.0;
-            for (auto j = 0u; j < N; ++j)
+            auto &outVal = outSwap[k] = math::zero<F>;
+            for (auto j = 0; j < N; ++j)
                 outVal += (inSwap[j] * unitRoot(j * k));
         };
 
         if (useOMP)
         {
 #pragma omp parallel for
-            for (auto k = 0u; k < N; ++k)
+            for (auto k = 0; k < N; ++k)
                 processOutVal(k);
         }
         else
@@ -89,20 +89,20 @@ struct Processor<F, Algorithm::FFT>
     static void run(std::vector<std::complex<F>> &inSwap, std::vector<std::complex<F>> &outSwap,
                     const UnitRootGetter unitRoot, bool useOMP)
     {
-        const auto N = inSwap.size();
-        assert(N == outSwap.size());
-        const auto n = N / 2u;
+        const auto N = std::ranges::ssize(inSwap);
+        assert(N == std::ranges::ssize(outSwap));
+        const auto n = N / 2;
 
-        for (auto numPartitions = 1u; numPartitions < N; numPartitions *= 2)
+        for (auto numPartitions = 1; numPartitions < N; numPartitions *= 2)
         {
-            const auto partitionSize = N / (numPartitions * 2u);
+            const auto partitionSize = N / (numPartitions * 2);
 
             const auto processPartition = [&](const auto k) {
                 const auto startJ = partitionSize * k;
                 const auto index0 = startJ * 2u;
                 const auto index1 = index0 + partitionSize;
                 const auto &root = unitRoot(startJ);
-                for (auto shift = 0u; shift < partitionSize; ++shift)
+                for (auto shift = 0; shift < partitionSize; ++shift)
                 {
                     const auto &rootProduct = root * inSwap[index1 + shift];
                     const auto &out0 = inSwap[index0 + shift];
@@ -115,12 +115,12 @@ struct Processor<F, Algorithm::FFT>
             if (useOMP)
             {
 #pragma omp parallel for
-                for (auto k = 0u; k < numPartitions; ++k)
+                for (auto k = 0; k < static_cast<int>(numPartitions); ++k)
                     processPartition(k);
             }
             else
             {
-                for (auto k = 0u; k < numPartitions; ++k)
+                for (auto k = 0; k < numPartitions; ++k)
                     processPartition(k);
             }
 
@@ -181,15 +181,15 @@ public:
     void transform(RealInRange &&realSignal, ComplexOutRange &&o_coefficients, const bool useOMP = true)
     {
         assert(static_cast<size_t>(std::ranges::size(realSignal)) == signalLength());
-        const auto outSize = static_cast<size_t>(std::ranges::size(o_coefficients));
-        assert(outSize == signalLength() || outSize == nyquistLength());
+        const auto outSize = std::ranges::ssize(o_coefficients);
+        assert(outSize == static_cast<int>(signalLength()) || outSize == static_cast<int>(nyquistLength()));
 
-        const auto n = signalLength() / 2u;
+        const auto n = signalLength() / 2;
         m_inSwap.resize(n);
         m_outSwap.resize(n);
         // unfortunately adjacent_transform_view is not yet available in c++20
         auto inIt = realSignal.begin();
-        for (auto i = 0u; i < n; ++i)
+        for (auto i = 0; i < n; ++i)
         {
             auto &c = m_inSwap[i];
             c.real(*(inIt++));
@@ -197,7 +197,7 @@ public:
         }
 
         const auto unitRoot = unitRootGetter_Negative();
-        const auto unitRoot_n = [&](const auto i) { return unitRoot(2u * i); };
+        const auto unitRoot_n = [&](const auto i) { return unitRoot(2 * i); };
         detail::Processor<F, Algorithm>::run(m_inSwap, m_outSwap, unitRoot_n, useOMP);
 
         m_outSwap.resize(n + 1);
@@ -210,27 +210,27 @@ public:
                                                                      m_outSwap[n - k].real() - m_outSwap[k].real()});
         };
 
-        const auto nHalf = n / 2u;
-        const auto deflateComplex = [&](const size_t k) {
+        const auto deflateComplex = [&](const auto k) {
             const auto [even_k, odd_k] = evenAndOdd(k);
             const auto [even_nMk, odd_nMk] = evenAndOdd(n - k);
             m_outSwap[k] = even_k + unitRoot(k) * odd_k;
             m_outSwap[n - k] = even_nMk + unitRoot(n - k) * odd_nMk;
         };
 
+        const auto nHalf = n / 2;
         if (useOMP)
         {
 #pragma omp parallel for
-            for (auto k = 1u; k <= nHalf; ++k)
+            for (auto k = 1; k <= nHalf; ++k)
                 deflateComplex(k);
         }
         else
         {
-            for (auto k = 1u; k <= nHalf; ++k)
+            for (auto k = 1; k <= nHalf; ++k)
                 deflateComplex(k);
         }
 
-        if (outSize == signalLength())
+        if (static_cast<size_t>(outSize) == signalLength())
         {
             m_outSwap.resize(signalLength());
             makeSecondHalfConjugate(m_outSwap);
@@ -264,21 +264,21 @@ public:
 private:
     auto unitRootGetter_Positive() const
     {
-        return [&, N = m_unitRoots.size()](size_t i) { return m_unitRoots[i % N]; };
+        return [&, N = m_unitRoots.size()](auto i) { return m_unitRoots[i % N]; };
     }
 
     auto unitRootGetter_Negative() const
     {
-        return [&, N = m_unitRoots.size()](size_t i) { return m_unitRoots[(i * N - i) % N]; };
+        return [&, N = m_unitRoots.size()](auto i) { return m_unitRoots[(i * N - i) % N]; };
     }
 
     static void makeSecondHalfConjugate(const std::span<std::complex<F>> io_coefficients)
     {
-        const auto N = io_coefficients.size();
+        const auto N = std::ranges::ssize(io_coefficients);
         assert(math::isZero(io_coefficients.front().imag()));
-        assert(N <= 2 || math::isZero(io_coefficients[N / 2u].imag()));
-        std::transform(io_coefficients.begin() + 1, io_coefficients.begin() + (static_cast<int>(N) / 2),
-                       io_coefficients.rbegin(), [](const auto &s) { return std::conj(s); });
+        assert(N <= 2 || math::isZero(io_coefficients[N / 2].imag()));
+        std::transform(io_coefficients.begin() + 1, io_coefficients.begin() + (N / 2), io_coefficients.rbegin(),
+                       [](const auto &s) { return std::conj(s); });
     }
 
     std::vector<std::complex<F>> m_unitRoots;

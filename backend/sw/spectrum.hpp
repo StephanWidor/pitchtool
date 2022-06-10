@@ -55,6 +55,8 @@ template<std::floating_point F>
 void identifyFrequencies(std::vector<SpectrumValue<F>> &io_spectrum, const F frequencyRatioTolerance = semitoneRatio<F>,
                          bool sort = false)
 {
+    if (std::ranges::ssize(io_spectrum) < 2)
+        return;
     if (sort)
         std::ranges::sort(io_spectrum, [](const auto &s0, const auto &s1) { return s0.frequency < s1.frequency; });
     auto mergeStartIndex = 0u, j = 0u;

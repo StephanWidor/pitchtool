@@ -9,11 +9,19 @@ namespace sw {
 template<std::floating_point F = double>
 constexpr F logSemitone = static_cast<F>(1.0 / 12.0);
 
+#ifdef __GNUC__
 template<std::floating_point F = double>
 constexpr F semitoneRatio = std::pow(static_cast<F>(2), logSemitone<F>);
 
 template<std::floating_point F = double>
 constexpr F sqrtSemitoneRatio = std::sqrt(semitoneRatio<F>);
+#else
+template<std::floating_point F = double>
+const F semitoneRatio = std::pow(static_cast<F>(2), logSemitone<F>);
+
+template<std::floating_point F = double>
+const F sqrtSemitoneRatio = std::sqrt(semitoneRatio<F>);
+#endif
 
 template<std::floating_point F>
 F semitonesToFactor(const F semitones)

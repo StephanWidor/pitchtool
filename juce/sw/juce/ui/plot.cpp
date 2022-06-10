@@ -3,7 +3,7 @@
 
 sw::juce::ui::plot::Graph::Graph(const ::juce::Colour &lineColor, const DrawType drawType, const float strokeThickness,
                                  const size_t initialSize)
-    : m_xValues(ranges::to_vector(std::views::iota(static_cast<size_t>(0), initialSize) |
+    : m_xValues(ranges::to_vector(std::views::iota(0, static_cast<int>(initialSize)) |
                                   std::views::transform([](const auto i) { return static_cast<float>(i); })))
     , m_yValues(initialSize, 0.0f)
     , m_lineColor(lineColor)

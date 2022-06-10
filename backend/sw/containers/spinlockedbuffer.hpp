@@ -83,7 +83,7 @@ private:
 
     std::vector<ValueType> m_inBuffer;
     mutable std::vector<ValueType> m_outBuffer;
-    mutable std::atomic_flag m_locked{false};
+    mutable std::atomic_flag m_locked;
     mutable std::atomic<bool> m_newDataAvailable{true};
 };
 

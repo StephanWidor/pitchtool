@@ -73,7 +73,16 @@ namespace signal {
 constexpr size_t numBlocks(const size_t signalLength, const size_t blockSize)
 {
     assert(signalLength > blockSize && blockSize > 0u);
+#ifdef __GNUC__
     return static_cast<size_t>(std::ceil(static_cast<float>(signalLength) / static_cast<float>(blockSize)));
+#else
+    const auto div = static_cast<float>(signalLength) / static_cast<float>(blockSize);
+    const auto sDiv = static_cast<size_t>(div);
+    if (static_cast<float>(sDiv) == div)
+        return sDiv;
+    else
+        return sDiv + 1;
+#endif
 }
 
 inline ::juce::Range<float> xRange(const size_t signalLength, const size_t blockSize)
@@ -102,8 +111,8 @@ auto blockSignal(R &&signal, const size_t blockSize)
                                          [](const auto f0, const auto f1) { return (std::abs(f0) < std::abs(f1)); });
     };
 
-    return std::views::iota(static_cast<size_t>(0u), numBlocks(numSamples, blockSize)) |
-           std::views::transform(blockView) | std::views::transform(maxAbs);
+    return std::views::iota(0, static_cast<int>(numBlocks(numSamples, blockSize))) | std::views::transform(blockView) |
+           std::views::transform(maxAbs);
 }
 
 }    // namespace signal

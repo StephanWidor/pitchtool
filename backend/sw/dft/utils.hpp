@@ -20,7 +20,7 @@ constexpr F binFrequencyStep(const size_t signalLength, const F sampleRate)
 template<std::floating_point F>
 auto binFrequencies(const size_t fftLength, const F sampleRate)
 {
-    return std::views::iota(0u) |
+    return std::views::iota(0) |
            std::views::transform([frequencyStep = binFrequencyStep<F>(fftLength, sampleRate)](const auto i) -> F {
                return static_cast<F>(i) * frequencyStep;
            });

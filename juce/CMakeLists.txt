@@ -8,10 +8,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #set(JUCE_BUILD_EXTRAS ON CACHE BOOL "Add build targets for the Projucer and other tools")
 add_subdirectory(juce_lv2)
 
+set(JUCE_PLUGIN_FORMATS Standalone VST3)
+
+if(UNIX AND NOT APPLE)
+    set(JUCE_PLUGIN_FORMATS ${JUCE_PLUGIN_FORMATS} LV2)
+endif()
+
 juce_add_plugin(${PROJECT_NAME}
     PLUGIN_MANUFACTURER_CODE SwPl
     PLUGIN_CODE swPT
-    FORMATS Standalone LV2 VST3
+    FORMATS ${JUCE_PLUGIN_FORMATS}
     COMPANY_NAME "SW"
     PRODUCT_NAME "pitchtool"
     PLUGIN_NAME "pitchtool"

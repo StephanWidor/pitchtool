@@ -2,6 +2,7 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <sw/pitchtool/processor.hpp>
 #include <sw/processingbuffer.hpp>
+#include <optional>
 
 namespace sw::juce::pitchtool {
 

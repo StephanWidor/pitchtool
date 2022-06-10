@@ -36,8 +36,9 @@ public:
                fftLength == (fftLength / overSampling) * overSampling);
     }
 
-    void process(ranges::TypedInputRange<F> auto &&signal, ranges::TypedOutputRange<F> auto &&o_signal,
-                 const F sampleRate, const TuningParameters<F> &tuningParameters,
+    template<ranges::TypedInputRange<F> InSignal, ranges::TypedOutputRange<F> OutSignal>
+    void process(InSignal &&signal, OutSignal &&o_signal, const F sampleRate,
+                 const TuningParameters<F> &tuningParameters,
                  const std::array<ChannelParameters<F>, NumChannels> &channelParameters, const F dryMixGain)
     {
         const auto stepSize = static_cast<int>(this->stepSize());

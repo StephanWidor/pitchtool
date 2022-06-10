@@ -73,7 +73,16 @@ namespace signal {
 constexpr size_t numBlocks(const size_t signalLength, const size_t blockSize)
 {
     assert(signalLength > blockSize && blockSize > 0u);
+#ifdef __GNUC__
     return static_cast<size_t>(std::ceil(static_cast<float>(signalLength) / static_cast<float>(blockSize)));
+#else
+    const auto div = static_cast<float>(signalLength) / static_cast<float>(blockSize);
+    const auto sDiv = static_cast<size_t>(div);
+    if (static_cast<float>(sDiv) == div)
+        return sDiv;
+    else
+        return sDiv + 1;
+#endif
 }
 
 inline ::juce::Range<float> xRange(const size_t signalLength, const size_t blockSize)

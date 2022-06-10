@@ -2,8 +2,9 @@
 
 #include <gtest/gtest.h>
 #include <sw/containers/utils.hpp>
-#include <sw/pitchprocessor.hpp>
+#include <sw/pitchtool/processor.hpp>
 #include <sw/signals.hpp>
+#include <sw/spectrum.hpp>
 
 #define WITHOUT_NUMPY
 #include <matplotlib-cpp/matplotlibcpp.h>
@@ -26,10 +27,10 @@ TEST(PitchProcessorTest, plotting)
 
     constexpr auto doPlotSpectrum = true;
 
-    using Processor = PitchProcessor<double, 1>;
+    using Processor = pitchtool::Processor<double, 1>;
 
-    Processor::TuningParameters tuneParameters;
-    Processor::ChannelParameters channelParameters{std::monostate{}, 12.0, 12.0, 1.0};
+    pitchtool::TuningParameters<double> tuneParameters;
+    pitchtool::ChannelParameters<double> channelParameters{std::monostate{}, 12.0, 12.0, 1.0};
 
     Processor processor(fftLength, oversampling);
 

@@ -217,4 +217,21 @@ TYPED_TEST(TransformTest, SingleSineWaves)
     }
 }
 
+TYPED_TEST(TransformTest, Performance)
+{
+    using F = TypeParam;
+    constexpr size_t N = 2u << 14;
+    constexpr size_t numRuns = 10000u;
+    constexpr bool useOMP = true;
+    FFT<F> fft(N);
+    std::vector<std::complex<F>> coefficients(dft::nyquistLength(N));
+    std::vector<F> signalBack(N);
+    const auto signal = makeRandomRealSignal(math::one<F>, N, 0u);
+    for (auto i = 0u; i < numRuns; ++i)
+    {
+        fft.transform(signal, coefficients, useOMP);
+        fft.transform_inverse(coefficients, signalBack, useOMP);
+    }
+}
+
 }    // namespace sw::dft::tests

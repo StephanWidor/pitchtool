@@ -21,16 +21,10 @@ template<typename R, typename T>
 concept TypedOutputRange =
   std::ranges::output_range<R, T> && std::same_as<std::ranges::range_value_t<R>, std::decay_t<T>>;
 
-template<typename R>
-concept VectorConstructibleFromBeginAndEnd = std::ranges::range<R> and requires(R r)
-{
-    std::vector<std::ranges::range_value_t<R>>(std::ranges::begin(r), std::ranges::end(r));
-};
-
 template<std::ranges::input_range R>
 std::vector<std::ranges::range_value_t<R>> to_vector(R &&range)
 {
-    if constexpr (VectorConstructibleFromBeginAndEnd<R>)
+    if constexpr (requires(R && r) { std::vector(std::ranges::begin(r), std::ranges::end(r)); })
         return std::vector<std::ranges::range_value_t<R>>(std::ranges::begin(range), std::ranges::end(range));
     else if constexpr (std::ranges::sized_range<R>)
     {

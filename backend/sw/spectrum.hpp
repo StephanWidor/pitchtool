@@ -125,23 +125,22 @@ void envelopeAlignmentFactors(ranges::TypedInputRange<F> auto &&gains,
                               ranges::TypedOutputRange<F> auto &&o_factors)
 {
     const auto numGains = std::ranges::ssize(gains);
-    using SizeType = decltype(numGains);
     assert(numGains == std::ranges::ssize(gainsToBeAligned) && numGains == std::ranges::ssize(o_factors));
 
     constexpr std::array<F, 21> c{0.0180, 0.0243, 0.0310, 0.0378, 0.0445, 0.0508, 0.0564,
                                   0.0611, 0.0646, 0.0667, 0.0675, 0.0667, 0.0646, 0.0611,
                                   0.0564, 0.0508, 0.0445, 0.0378, 0.0310, 0.0243, 0.0180};
-    constexpr auto offset = static_cast<SizeType>(c.size() / 2);
+    constexpr auto offset = std::ranges::ssize(c) / 2;
 
-    const auto envelopeValue = [&](auto &&envGains, const SizeType i) {
-        const auto gainsStart = std::max(math::zero<SizeType>, i - offset);
-        const auto gainsEnd = std::min(i + offset + 1, numGains);
+    const auto envelopeValue = [&](auto &&envGains, const auto i) {
+        const auto gainsStart = std::max<int>(0, i - offset);
+        const auto gainsEnd = std::min<int>(i + offset + 1, numGains);
         const auto cStart = gainsStart - i + offset;
         return std::inner_product(envGains.begin() + gainsStart, envGains.begin() + gainsEnd, c.begin() + cStart,
                                   math::zero<F>);
     };
 
-    std::ranges::transform(std::views::iota(math::zero<SizeType>, numGains), o_factors.begin(), [&](const auto i) {
+    std::ranges::transform(std::views::iota(0, numGains), o_factors.begin(), [&](const auto i) {
         const auto envelopeToBeAligned = envelopeValue(gainsToBeAligned, i);
         if (envelopeToBeAligned == math::zero<F>)
             return math::one<F>;

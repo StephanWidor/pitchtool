@@ -111,8 +111,8 @@ auto blockSignal(R &&signal, const size_t blockSize)
                                          [](const auto f0, const auto f1) { return (std::abs(f0) < std::abs(f1)); });
     };
 
-    return std::views::iota(static_cast<size_t>(0u), numBlocks(numSamples, blockSize)) |
-           std::views::transform(blockView) | std::views::transform(maxAbs);
+    return std::views::iota(0, static_cast<int>(numBlocks(numSamples, blockSize))) | std::views::transform(blockView) |
+           std::views::transform(maxAbs);
 }
 
 }    // namespace signal

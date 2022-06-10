@@ -31,7 +31,7 @@ std::vector<std::complex<F>> makeRandomComplexSignal(const F amplitude, const si
     std::mt19937 generator(seed);
     std::uniform_real_distribution<F> value(math::zero<F>, math::one<F>);
 
-    return ranges::to_vector(std::views::iota(static_cast<size_t>(0), length) | std::views::transform([&](const auto) {
+    return ranges::to_vector(std::views::iota(0, static_cast<int>(length)) | std::views::transform([&](const auto) {
                                  return std::polar(amplitude * value(generator), math::twoPi<F> * value(generator));
                              }));
 }
@@ -43,14 +43,14 @@ std::vector<F> makeRandomRealSignal(const F amplitude, const size_t length, cons
     std::mt19937 generator(seed);
     std::uniform_real_distribution<F> value(-amplitude, amplitude);
 
-    return ranges::to_vector(std::views::iota(static_cast<size_t>(0), length) |
+    return ranges::to_vector(std::views::iota(0, static_cast<int>(length)) |
                              std::views::transform([&](const auto) { return value(generator); }));
 }
 
 template<std::floating_point F>
 auto sineWave(const F amplitude, const F frequency, const F sampleRate)
 {
-    return std::views::iota(0u) |
+    return std::views::iota(0) |
            std::views::transform([amplitude, deltaT = math::twoPi<F> * (frequency / sampleRate)](const auto i) -> F {
                return amplitude * std::sin(static_cast<F>(i) * deltaT);
            });
@@ -65,8 +65,8 @@ std::vector<F> makeSineWave(const F amplitude, const F frequency, const F sample
 template<std::floating_point F>
 auto phasor(const F amplitude, const F frequency, const F sampleRate)
 {
-    return std::views::iota(0u) | std::views::transform([amplitude, deltaT = math::twoPi<F> * (frequency / sampleRate)](
-                                                          const auto i) -> std::complex<F> {
+    return std::views::iota(0) | std::views::transform([amplitude, deltaT = math::twoPi<F> * (frequency / sampleRate)](
+                                                         const auto i) -> std::complex<F> {
                return std::polar(amplitude, static_cast<F>(i) * deltaT);
            });
 }
@@ -89,7 +89,7 @@ template<std::floating_point F>
 auto cosineWindow(size_t length, const F a0)
 {
     assert(length > 1u);
-    return std::views::iota(static_cast<size_t>(0), length) |
+    return std::views::iota(0, static_cast<int>(length)) |
            std::views::transform([a0, oneMinusA0 = math::one<F> - a0,
                                   step = math::twoPi<F> / static_cast<F>(length - 1u)](const auto i) -> F {
                return a0 - oneMinusA0 * cos(static_cast<F>(i) * step);

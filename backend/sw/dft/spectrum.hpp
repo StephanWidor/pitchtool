@@ -71,17 +71,14 @@ void shiftPitch(const F pitchFactor, ranges::TypedInputRange<SpectrumValue<F>> a
     assert(pitchFactor > math::zero<F>);
 
     const auto numValues = std::ranges::ssize(binSpectrum);
-    using SizeType = decltype(numValues);
     assert(std::ranges::ssize(o_shiftedBinSpectrum) == numValues);
 
     const auto rangeToMerge = [&](const auto i) {
-        const auto beginIndex =
-          std::min(static_cast<SizeType>(
-                     std::max(math::zero<F>, std::ceil((static_cast<F>(i) - math::oneHalf<F>) / pitchFactor))),
-                   numValues);
-        const auto endIndex =
-          std::clamp(static_cast<SizeType>(std::ceil((static_cast<F>(i) + math::oneHalf<F>) / pitchFactor)),
-                     math::zero<SizeType>, numValues);
+        const auto beginIndex = std::min<int>(
+          static_cast<int>(std::max(math::zero<F>, std::ceil((static_cast<F>(i) - math::oneHalf<F>) / pitchFactor))),
+          numValues);
+        const auto endIndex = std::clamp<int>(
+          static_cast<int>(std::ceil((static_cast<F>(i) + math::oneHalf<F>) / pitchFactor)), 0, numValues);
         assert(endIndex >= beginIndex);
         return std::views::counted(binSpectrum.begin() + beginIndex, endIndex - beginIndex);
     };
@@ -92,8 +89,7 @@ void shiftPitch(const F pitchFactor, ranges::TypedInputRange<SpectrumValue<F>> a
         return SpectrumValue<F>{pitchFactor * unpitchedValue.frequency, unpitchedValue.gain};
     };
 
-    std::ranges::transform(std::views::iota(math::zero<SizeType>, numValues), o_shiftedBinSpectrum.begin(),
-                           shiftedSpectrumValue);
+    std::ranges::transform(std::views::iota(0, numValues), o_shiftedBinSpectrum.begin(), shiftedSpectrumValue);
 }
 
 }    // namespace sw::dft

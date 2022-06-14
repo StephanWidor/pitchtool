@@ -36,9 +36,11 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createTuningParameterGroup
 
 std::unique_ptr<::juce::AudioProcessorParameterGroup> createChannelGroup(const size_t channel)
 {
+    static constexpr auto defaultChannelParameters =
+      sw::pitchtool::defaultChannelParameters<float, sw::juce::pitchtool::Processor::NumChannels>();
+
     const ::juce::String channelAsString(channel);
-    const auto &defaultParameters =
-      ::sw::pitchtool::defaultChannelParameters<float, sw::juce::pitchtool::Processor::NumChannels>()[channel];
+    const auto &defaultParameters = defaultChannelParameters[channel];
     return std::make_unique<juce::AudioProcessorParameterGroup>(
       "channel_" + channelAsString, "Channel " + channelAsString, "|",
       std::make_unique<::juce::AudioParameterInt>(

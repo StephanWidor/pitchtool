@@ -51,11 +51,10 @@ constexpr TuningParameters<F> defaultTuningParameters()
 }
 
 template<std::floating_point F, std::uint8_t NumChannels>
-auto defaultChannelParameters()
+constexpr auto defaultChannelParameters()
 {
     return containers::makeArray<NumChannels>([](const size_t channel) {
-        const auto mixGain = channel == 0u ? math::one<F> : math::zero<F>;
-        return ChannelParameters{{}, math::zero<F>, math::zero<F>, mixGain};
+        return ChannelParameters{.mixGain = (channel == 0u ? math::one<F> : math::zero<F>)};
     });
 }
 

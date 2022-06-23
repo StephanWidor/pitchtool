@@ -132,7 +132,22 @@ bool equal(ranges::TypedInputRange<F> auto &&signal0, ranges::TypedInputRange<F>
 template<std::floating_point F>
 F average(ranges::TypedInputRange<F> auto &&signal)
 {
-    return std::accumulate(signal.begin(), signal.end(), math::zero<F>) / static_cast<F>(std::ranges::size(signal));
+    if constexpr (std::ranges::sized_range<decltype(signal)>)
+    {
+        return std::ranges::empty(signal) ? math::zero<F> :
+                                            std::accumulate(signal.begin(), signal.end(), math::zero<F>) /
+                                              static_cast<F>(std::ranges::size(signal));
+    }
+    else
+    {
+        auto count = 0u;
+        const auto sum =
+          std::accumulate(signal.begin(), signal.end(), math::zero<F>, [&count](const auto s0, const auto s1) {
+              ++count;
+              return s0 + s1;
+          });
+        return count == 0u ? math::zero<F> : sum / static_cast<F>(count);
+    }
 }
 
 template<std::floating_point F>

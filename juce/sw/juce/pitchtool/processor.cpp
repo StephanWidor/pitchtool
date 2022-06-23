@@ -27,10 +27,10 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createTuningParameterGroup
                                                     ::juce::NormalisableRange<float>(400.0f, 480.0f, 1.0f),
                                                     ::sw::pitchtool::defaultTuningParameters<float>().standardPitch),
       std::make_unique<::juce::AudioParameterFloat>(
-        "frequencyAveragingTime", "Frequency Averaging Time", ::juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f),
+        "frequencyAveragingTime", "Frequency Averaging Time", ::juce::NormalisableRange<float>(0.0f, 0.5f, 0.005f),
         ::sw::pitchtool::defaultTuningParameters<float>().frequencyAveragingTime),
       std::make_unique<::juce::AudioParameterFloat>("attackTime", "Attack Time",
-                                                    ::juce::NormalisableRange<float>(0.0f, 2.0f, 0.01f),
+                                                    ::juce::NormalisableRange<float>(0.0f, 0.5f, 0.005f),
                                                     ::sw::pitchtool::defaultTuningParameters<float>().attackTime));
 }
 

@@ -26,9 +26,12 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createTuningParameterGroup
       std::make_unique<::juce::AudioParameterFloat>("standardPitch", "Standard Pitch",
                                                     ::juce::NormalisableRange<float>(400.0f, 480.0f, 1.0f),
                                                     ::sw::pitchtool::defaultTuningParameters<float>().standardPitch),
-      std::make_unique<::juce::AudioParameterFloat>(
-        "frequencyAveragingTime", "Frequency Averaging Time", ::juce::NormalisableRange<float>(0.0f, 0.5f, 0.005f),
-        ::sw::pitchtool::defaultTuningParameters<float>().frequencyAveragingTime),
+      std::make_unique<::juce::AudioParameterFloat>("averagingTime", "Averaging Time",
+                                                    ::juce::NormalisableRange<float>(0.0f, 0.5f, 0.005f),
+                                                    ::sw::pitchtool::defaultTuningParameters<float>().averagingTime),
+      std::make_unique<::juce::AudioParameterFloat>("holdTime", "Hold Time",
+                                                    ::juce::NormalisableRange<float>(0.0f, 0.5f, 0.005f),
+                                                    ::sw::pitchtool::defaultTuningParameters<float>().holdTime),
       std::make_unique<::juce::AudioParameterFloat>("attackTime", "Attack Time",
                                                     ::juce::NormalisableRange<float>(0.0f, 0.5f, 0.005f),
                                                     ::sw::pitchtool::defaultTuningParameters<float>().attackTime));
@@ -106,7 +109,7 @@ bool sw::juce::pitchtool::Processor::isBusesLayoutSupported(const BusesLayout &l
 
 sw::pitchtool::TuningParameters<float> sw::juce::pitchtool::Processor::tuningParameters()
 {
-    return {parameterValue<float>("standardPitch"), parameterValue<float>("frequencyAveragingTime"),
+    return {parameterValue<float>("standardPitch"), parameterValue<float>("averagingTime"),
             parameterValue<float>("attackTime")};
 }
 

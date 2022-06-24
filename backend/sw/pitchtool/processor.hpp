@@ -144,8 +144,8 @@ public:
                                   m_inputState.phases);
         filterSpectrum(m_inputState);
         m_inputState.fundamentalFrequency =
-          m_frequencyFilter.process(findFundamental<F>(m_inputState.spectrum.inBuffer()).frequency,
-                                    tuningParameters.frequencyAveragingTime, timeDiff);
+          m_frequencyFilter.process(findFundamental<F>(m_inputState.spectrum.inBuffer()).frequency, timeDiff,
+                                    tuningParameters.averagingTime, tuningParameters.holdTime);
 
         for (auto i = 0u; i < NumChannels; ++i)
             processChannel(channelParameters[i], m_channelStates[i]);

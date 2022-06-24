@@ -43,12 +43,14 @@ public:
 
 private:
     ui::RoundSlider m_standardPitchSlider{"Standard\nPitch"};
-    ui::RoundSlider m_frequencyAveragingTimeSlider{"Averaging\nTime"};
+    ui::RoundSlider m_averagingTimeSlider{"Averaging\nTime"};
+    ui::RoundSlider m_holdTimeSlider{"Hold\nTime"};
     ui::RoundSlider m_attackTimeSlider{"Attack\nTime"};
     ui::NoteDisplay m_noteDisplay{ui::NoteDisplay::Layout::Vertical};
 
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_standardPitchAttachment;
-    ::juce::AudioProcessorValueTreeState::SliderAttachment m_frequencyAveragingTimeAttachment;
+    ::juce::AudioProcessorValueTreeState::SliderAttachment m_averagingTimeAttachment;
+    ::juce::AudioProcessorValueTreeState::SliderAttachment m_holdTimeAttachment;
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_attackTimeAttachment;
 
     //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)

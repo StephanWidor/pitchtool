@@ -90,16 +90,19 @@ void sw::juce::pitchtool::PlotComponent::updatePlots()
 sw::juce::pitchtool::TuningComponent::TuningComponent(::juce::AudioProcessorValueTreeState &processorState)
     : ui::GroupComponent("Tuning", marginsSize, true)
     , m_standardPitchAttachment(processorState, "standardPitch", m_standardPitchSlider)
-    , m_frequencyAveragingTimeAttachment(processorState, "frequencyAveragingTime", m_frequencyAveragingTimeSlider)
+    , m_averagingTimeAttachment(processorState, "averagingTime", m_averagingTimeSlider)
+    , m_holdTimeAttachment(processorState, "holdTime", m_holdTimeSlider)
     , m_attackTimeAttachment(processorState, "attackTime", m_attackTimeSlider)
 {
     addAndMakeVisible(m_standardPitchSlider);
-    addAndMakeVisible(m_frequencyAveragingTimeSlider);
+    addAndMakeVisible(m_averagingTimeSlider);
+    addAndMakeVisible(m_holdTimeSlider);
     addAndMakeVisible(m_attackTimeSlider);
     addAndMakeVisible(m_noteDisplay);
 
     m_standardPitchSlider.setTextValueSuffix(" Hz");
-    m_frequencyAveragingTimeSlider.setTextValueSuffix(" sec");
+    m_averagingTimeSlider.setTextValueSuffix(" sec");
+    m_holdTimeSlider.setTextValueSuffix(" sec");
     m_attackTimeSlider.setTextValueSuffix(" sec");
 }
 
@@ -114,8 +117,8 @@ void sw::juce::pitchtool::TuningComponent::resized()
     m_noteDisplay.setBounds(localBounds.withTrimmedLeft(otherWidth).toNearestInt());
 
     const auto sliderBounds = localBounds.withWidth(otherWidth).reduced(marginsSize);
-    ui::layoutHorizontal(sliderBounds, marginsSize, m_standardPitchSlider, m_frequencyAveragingTimeSlider,
-                         m_attackTimeSlider);
+    ui::layoutHorizontal(sliderBounds, marginsSize, m_standardPitchSlider, m_averagingTimeSlider,
+                         m_holdTimeSlider, m_attackTimeSlider);
 }
 
 void sw::juce::pitchtool::TuningComponent::setFrequency(const float frequency, const float standardPitch)
@@ -127,7 +130,8 @@ sw::juce::pitchtool::ChannelComponent::ChannelComponent(Processor &processor, si
     : ui::GroupComponent("Channel " + std::to_string(channel), marginsSize, true)
     , m_tuningAttachment(processor.parameterState(), "tuning_" + ::juce::String(channel), m_tuningComboBox)
     , m_pitchShiftAttachment(processor.parameterState(), "pitchShift_" + ::juce::String(channel), m_pitchShiftSlider)
-    , m_formantsShiftAttachment(processor.parameterState(), "formantsShift_" + ::juce::String(channel), m_formantsShiftSlider)
+    , m_formantsShiftAttachment(processor.parameterState(), "formantsShift_" + ::juce::String(channel),
+                                m_formantsShiftSlider)
 {
     m_tuningComboBox.addItem(std::string(::sw::pitchtool::tuning::typeNames[tuning::NoTuning]), 1);
     m_tuningComboBox.addItem(std::string(::sw::pitchtool::tuning::typeNames[tuning::Midi]) + " Ch" +

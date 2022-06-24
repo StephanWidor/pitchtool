@@ -7,7 +7,7 @@
 namespace {
 
 constexpr auto marginsSize{10.0f};
-constexpr auto noteDisplayWidthFraction{1.0f / 13.0f};
+constexpr auto noteDisplayWidth{30.0f};
 
 std::array<::juce::Colour, sw::juce::pitchtool::Processor::NumChannels> signalGraphColors{
   ::juce::Colour::fromRGBA(193u, 193u, 193u, 200u), ::juce::Colour::fromRGBA(100u, 100u, 100u, 100u)};
@@ -111,14 +111,13 @@ void sw::juce::pitchtool::TuningComponent::resized()
     ui::GroupComponent::resized();
 
     const auto localBounds = getLocalBounds().toFloat().reduced(marginsSize);
-    const auto noteDisplayWidth = noteDisplayWidthFraction * localBounds.getWidth();
     const auto otherWidth = localBounds.getWidth() - noteDisplayWidth;
 
     m_noteDisplay.setBounds(localBounds.withTrimmedLeft(otherWidth).toNearestInt());
 
     const auto sliderBounds = localBounds.withWidth(otherWidth).reduced(marginsSize);
-    ui::layoutHorizontal(sliderBounds, marginsSize, m_standardPitchSlider, m_averagingTimeSlider,
-                         m_holdTimeSlider, m_attackTimeSlider);
+    ui::layoutHorizontal(sliderBounds, marginsSize, m_standardPitchSlider, m_averagingTimeSlider, m_holdTimeSlider,
+                         m_attackTimeSlider);
 }
 
 void sw::juce::pitchtool::TuningComponent::setFrequency(const float frequency, const float standardPitch)
@@ -148,8 +147,8 @@ sw::juce::pitchtool::ChannelComponent::ChannelComponent(Processor &processor, si
     addAndMakeVisible(m_formantsShiftSlider);
     addAndMakeVisible(m_noteDisplay);
 
-    m_pitchShiftSlider.setTextValueSuffix(" st");
-    m_formantsShiftSlider.setTextValueSuffix(" st");
+    m_pitchShiftSlider.setTextValueSuffix(" #");
+    m_formantsShiftSlider.setTextValueSuffix(" #");
 }
 
 void sw::juce::pitchtool::ChannelComponent::resized()
@@ -157,7 +156,6 @@ void sw::juce::pitchtool::ChannelComponent::resized()
     ui::GroupComponent::resized();
 
     const auto localBounds = getLocalBounds().toFloat().reduced(marginsSize);
-    const auto noteDisplayWidth = noteDisplayWidthFraction * localBounds.getWidth();
     const auto otherWidth = localBounds.getWidth() - noteDisplayWidth;
 
     m_noteDisplay.setBounds(localBounds.withTrimmedLeft(otherWidth).toNearestInt());
@@ -249,9 +247,10 @@ void sw::juce::pitchtool::Editor::resized()
 
     m_plotComponent.setBounds(editorBounds.withHeight(plotsHeight).reduced(marginsSize).toNearestInt());
 
-    const auto templateBounds = editorBounds.withWidth(otherWidth).withHeight(otherHeight);
+    m_tuningComponent.setBounds(
+      editorBounds.withY(plotsHeight).withHeight(otherHeight).reduced(marginsSize).toNearestInt());
 
-    m_tuningComponent.setBounds(templateBounds.withY(plotsHeight).reduced(marginsSize).toNearestInt());
+    const auto templateBounds = editorBounds.withWidth(otherWidth).withHeight(otherHeight);
     for (auto channel = 0u; channel < Processor::NumChannels; ++channel)
     {
         m_channelComponents[channel].setBounds(
@@ -260,8 +259,10 @@ void sw::juce::pitchtool::Editor::resized()
             .toNearestInt());
     }
 
-    m_mixComponent.setBounds(
-      editorBounds.withTrimmedLeft(otherWidth).withTrimmedTop(plotsHeight).reduced(marginsSize).toNearestInt());
+    m_mixComponent.setBounds(editorBounds.withTrimmedLeft(otherWidth)
+                               .withTrimmedTop(plotsHeight + otherHeight)
+                               .reduced(marginsSize)
+                               .toNearestInt());
 }
 
 void sw::juce::pitchtool::Editor::changeListenerCallback(::juce::ChangeBroadcaster *sender)

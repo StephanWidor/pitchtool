@@ -1,10 +1,8 @@
 # pitchtool
 
-An JUCE based audio plugin (vst3, lv2) for pitching your voice up or down.
+A JUCE based audio plugin (vst3, lv2) for pitching your voice up or down.
 
-
-https://user-images.githubusercontent.com/42894124/162634774-3fd168ed-93ec-4d54-8161-442e580fbbf2.mp4
-
+https://user-images.githubusercontent.com/42894124/175772918-08d41f37-0639-4bc7-8308-7cc24682bff4.mp4
 
 ## Build
 

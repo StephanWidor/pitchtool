@@ -17,13 +17,20 @@ public:
 
     void resized() override;
 
+    void mouseUp(const ::juce::MouseEvent &) override;
+
 private:
+    void setSignalPlotEnabled(bool);
+    void setSpectrumPlotEnabled(bool);
+
     Processor &m_processor;
 
     size_t m_signalPlotBlockSize{20u};
     size_t m_signalPlotLength{48000u};
     ui::plot::Plot m_signalPlot;
+    ::juce::Label m_signalPlotEnableLabel{"", "Click to enable Signal Plotting"};
     ui::plot::Plot m_spectrumPlot;
+    ::juce::Label m_spectrumPlotEnableLabel{"", "Click to enable Spectrum Plotting"};
     ::juce::Label m_logScaleLabel{"", "Log Scale: "};
     ::juce::ToggleButton m_frequenciesLogScaleButton{"Frequencies"};
     ::juce::ToggleButton m_gainsLogScaleButton{"Gains"};

@@ -51,6 +51,13 @@ public:
         return true;
     }
 
+    bool setAllYValues(float value)
+    {
+        for (auto &v : m_yValues)
+            v = value;
+        return true;
+    }
+
     template<ranges::TypedInputRange<float> R>
     void pushYValues(R &&yValues)
     {

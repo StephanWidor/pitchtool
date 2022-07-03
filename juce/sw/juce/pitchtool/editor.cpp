@@ -43,10 +43,22 @@ sw::juce::pitchtool::PlotComponent::PlotComponent(sw::juce::pitchtool::Processor
     , m_gainsLogScaleAttachment(processor.parameterState(), "gainsLogScale", m_gainsLogScaleButton)
 {
     addAndMakeVisible(m_signalPlot);
+    addAndMakeVisible(m_signalPlotEnableLabel);
     addAndMakeVisible(m_spectrumPlot);
+    addAndMakeVisible(m_spectrumPlotEnableLabel);
     addAndMakeVisible(m_logScaleLabel);
     addAndMakeVisible(m_frequenciesLogScaleButton);
     addAndMakeVisible(m_gainsLogScaleButton);
+
+    m_signalPlotEnableLabel.setJustificationType(::juce::Justification::centred);
+    m_signalPlotEnableLabel.setEnabled(false);
+    m_spectrumPlotEnableLabel.setJustificationType(::juce::Justification::centred);
+    m_spectrumPlotEnableLabel.setEnabled(false);
+
+    setSignalPlotEnabled(true);
+    setSpectrumPlotEnabled(true);
+
+    addMouseListener(this, true);
 }
 
 void sw::juce::pitchtool::PlotComponent::resized()
@@ -57,34 +69,79 @@ void sw::juce::pitchtool::PlotComponent::resized()
       m_spectrumPlot.getBounds().toFloat().reduced(marginsSize).withHeight(2.0f * marginsSize);
     ui::layoutHorizontal(plotButtonBounds, marginsSize, m_logScaleLabel, m_gainsLogScaleButton,
                          m_frequenciesLogScaleButton);
+
+    m_signalPlotEnableLabel.setBounds(m_signalPlot.getBounds().withHeight(m_signalPlot.getHeight() / 2));
+    m_spectrumPlotEnableLabel.setBounds(m_spectrumPlot.getBounds().withHeight(m_spectrumPlot.getHeight() / 2));
+}
+
+void sw::juce::pitchtool::PlotComponent::mouseUp(const ::juce::MouseEvent &event)
+{
+    if (event.eventComponent == &m_signalPlot || event.eventComponent == &m_signalPlotEnableLabel)
+        setSignalPlotEnabled(!m_signalPlot.isEnabled());
+    else if (event.eventComponent == &m_spectrumPlot || event.eventComponent == &m_spectrumPlotEnableLabel)
+        setSpectrumPlotEnabled(!m_spectrumPlot.isEnabled());
+}
+
+void sw::juce::pitchtool::PlotComponent::setSignalPlotEnabled(const bool enabled)
+{
+    m_signalPlot.setEnabled(enabled);
+    m_signalPlotEnableLabel.setVisible(!enabled);
+    if (!enabled)
+    {
+        m_signalPlot.graphs.front().setAllYValues(0.0f);
+        m_signalPlot.graphs.back().setAllYValues(0.0f);
+        m_signalPlot.repaint();
+    }
+}
+
+void sw::juce::pitchtool::PlotComponent::setSpectrumPlotEnabled(const bool enabled)
+{
+    m_spectrumPlot.setEnabled(enabled);
+    m_spectrumPlotEnableLabel.setVisible(!enabled);
+    m_logScaleLabel.setVisible(enabled);
+    m_frequenciesLogScaleButton.setVisible(enabled);
+    m_gainsLogScaleButton.setVisible(enabled);
+    if (!enabled)
+    {
+        std::vector<float> empty;
+        for (auto &graph : m_spectrumPlot.graphs)
+            graph.setValues(empty, empty);
+        m_spectrumPlot.repaint();
+    }
 }
 
 void sw::juce::pitchtool::PlotComponent::updatePlots()
 {
-    m_signalPlot.graphs.front().pushYValues(
-      ui::plot::signal::blockSignal(m_processor.inputBuffer(), m_signalPlotBlockSize));
-    m_signalPlot.graphs.back().pushYValues(
-      ui::plot::signal::blockSignal(m_processor.outputBuffer(), m_signalPlotBlockSize));
+    if (m_signalPlot.isEnabled())
+    {
+        m_signalPlot.graphs.front().pushYValues(
+          ui::plot::signal::blockSignal(m_processor.inputBuffer(), m_signalPlotBlockSize));
+        m_signalPlot.graphs.back().pushYValues(
+          ui::plot::signal::blockSignal(m_processor.outputBuffer(), m_signalPlotBlockSize));
 
-    m_signalPlot.repaint();
+        m_signalPlot.repaint();
+    }
 
-    const auto frequenciesLogScale = static_cast<bool>(m_processor.parameterValue<bool>("frequenciesLogScale"));
-    const auto gainsLogScale = static_cast<bool>(m_processor.parameterValue<bool>("gainsLogScale"));
+    if (m_spectrumPlot.isEnabled())
+    {
+        const auto frequenciesLogScale = static_cast<bool>(m_processor.parameterValue<bool>("frequenciesLogScale"));
+        const auto gainsLogScale = static_cast<bool>(m_processor.parameterValue<bool>("gainsLogScale"));
 
-    const auto xRange = ui::plot::spectrum::xRange(frequenciesLogScale);
-    const auto yRange = ui::plot::spectrum::yRange(gainsLogScale);
-    m_spectrumPlot.setRanges(xRange, yRange);
+        const auto xRange = ui::plot::spectrum::xRange(frequenciesLogScale);
+        const auto yRange = ui::plot::spectrum::yRange(gainsLogScale);
+        m_spectrumPlot.setRanges(xRange, yRange);
 
-    const auto plotSpectrum = [&](const std::vector<SpectrumValue<float>> &spectrum, ui::plot::Graph &o_graph) {
-        o_graph.setValues(ui::plot::spectrum::xValues(frequencies<float>(spectrum), frequenciesLogScale),
-                          ui::plot::spectrum::yValues(gains<float>(spectrum), gainsLogScale));
-    };
+        const auto plotSpectrum = [&](const std::vector<SpectrumValue<float>> &spectrum, ui::plot::Graph &o_graph) {
+            o_graph.setValues(ui::plot::spectrum::xValues(frequencies<float>(spectrum), frequenciesLogScale),
+                              ui::plot::spectrum::yValues(gains<float>(spectrum), gainsLogScale));
+        };
 
-    plotSpectrum(m_processor.pitchProcessor().inSpectrum(), m_spectrumPlot.graphs.back());
-    for (auto channel = 0u; channel < Processor::NumChannels; ++channel)
-        plotSpectrum(m_processor.pitchProcessor().outSpectrum(channel), m_spectrumPlot.graphs[channel]);
+        plotSpectrum(m_processor.pitchProcessor().inSpectrum(), m_spectrumPlot.graphs.back());
+        for (auto channel = 0u; channel < Processor::NumChannels; ++channel)
+            plotSpectrum(m_processor.pitchProcessor().outSpectrum(channel), m_spectrumPlot.graphs[channel]);
 
-    m_spectrumPlot.repaint();
+        m_spectrumPlot.repaint();
+    }
 }
 
 sw::juce::pitchtool::TuningComponent::TuningComponent(::juce::AudioProcessorValueTreeState &processorState)

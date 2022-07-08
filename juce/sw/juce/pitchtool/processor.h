@@ -1,8 +1,8 @@
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <optional>
 #include <sw/pitchtool/processor.hpp>
 #include <sw/processingbuffer.hpp>
-#include <optional>
 
 namespace sw::juce::pitchtool {
 
@@ -53,6 +53,9 @@ public:
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
+
+    void resetMidi() { m_currentMidiNotes.fill(std::nullopt); }
+
     double getTailLengthSeconds() const override { return 0.0; }
 
     int getNumPrograms() override

@@ -42,7 +42,7 @@ private:
 class TuningComponent : public ui::GroupComponent
 {
 public:
-    TuningComponent(::juce::AudioProcessorValueTreeState &);
+    TuningComponent(Processor &);
 
     void resized() override;
 
@@ -54,6 +54,7 @@ private:
     ui::RoundSlider m_holdTimeSlider{"Hold\nTime"};
     ui::RoundSlider m_attackTimeSlider{"Attack\nTime"};
     ui::NoteDisplay m_noteDisplay{ui::NoteDisplay::Layout::Vertical};
+    ::juce::ImageButton m_resetMidiButton;
 
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_standardPitchAttachment;
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_averagingTimeAttachment;

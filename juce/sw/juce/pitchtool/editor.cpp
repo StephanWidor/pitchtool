@@ -1,4 +1,5 @@
 #include "sw/juce/pitchtool/editor.h"
+#include "BinaryData.h"
 #include "sw/juce/pitchtool/processor.h"
 #include "sw/juce/ui/utils.h"
 #include "sw/notes.hpp"
@@ -144,23 +145,31 @@ void sw::juce::pitchtool::PlotComponent::updatePlots()
     }
 }
 
-sw::juce::pitchtool::TuningComponent::TuningComponent(::juce::AudioProcessorValueTreeState &processorState)
+sw::juce::pitchtool::TuningComponent::TuningComponent(sw::juce::pitchtool::Processor &processor)
     : ui::GroupComponent("Tuning", marginsSize, true)
-    , m_standardPitchAttachment(processorState, "standardPitch", m_standardPitchSlider)
-    , m_averagingTimeAttachment(processorState, "averagingTime", m_averagingTimeSlider)
-    , m_holdTimeAttachment(processorState, "holdTime", m_holdTimeSlider)
-    , m_attackTimeAttachment(processorState, "attackTime", m_attackTimeSlider)
+    , m_standardPitchAttachment(processor.parameterState(), "standardPitch", m_standardPitchSlider)
+    , m_averagingTimeAttachment(processor.parameterState(), "averagingTime", m_averagingTimeSlider)
+    , m_holdTimeAttachment(processor.parameterState(), "holdTime", m_holdTimeSlider)
+    , m_attackTimeAttachment(processor.parameterState(), "attackTime", m_attackTimeSlider)
 {
     addAndMakeVisible(m_standardPitchSlider);
     addAndMakeVisible(m_averagingTimeSlider);
     addAndMakeVisible(m_holdTimeSlider);
     addAndMakeVisible(m_attackTimeSlider);
     addAndMakeVisible(m_noteDisplay);
+    addAndMakeVisible(m_resetMidiButton);
 
     m_standardPitchSlider.setTextValueSuffix(" Hz");
     m_averagingTimeSlider.setTextValueSuffix(" sec");
     m_holdTimeSlider.setTextValueSuffix(" sec");
     m_attackTimeSlider.setTextValueSuffix(" sec");
+
+    auto resetMidiImg = ::juce::ImageCache::getFromMemory(jucepitchtool_resources::reset_midi_png,
+                                                          jucepitchtool_resources::reset_midi_pngSize);
+    m_resetMidiButton.setImages(false, true, false, resetMidiImg, 0.7f, {}, resetMidiImg, 0.9f, {}, resetMidiImg, 0.4f,
+                                {});
+
+    m_resetMidiButton.onClick = [&]() { processor.resetMidi(); };
 }
 
 void sw::juce::pitchtool::TuningComponent::resized()
@@ -170,7 +179,12 @@ void sw::juce::pitchtool::TuningComponent::resized()
     const auto localBounds = getLocalBounds().toFloat().reduced(marginsSize);
     const auto otherWidth = localBounds.getWidth() - noteDisplayWidth;
 
-    m_noteDisplay.setBounds(localBounds.withTrimmedLeft(otherWidth).toNearestInt());
+    const auto rightBounds = localBounds.withTrimmedLeft(otherWidth);
+    const auto rightHeightSep = rightBounds.getHeight() - rightBounds.getWidth();
+
+    m_noteDisplay.setBounds(rightBounds.withHeight(rightHeightSep).toNearestInt());
+
+    m_resetMidiButton.setBounds(rightBounds.withTrimmedTop(rightHeightSep).reduced(5.0f).toNearestInt());
 
     const auto sliderBounds = localBounds.withWidth(otherWidth).reduced(marginsSize);
     ui::layoutHorizontal(sliderBounds, marginsSize, m_standardPitchSlider, m_averagingTimeSlider, m_holdTimeSlider,
@@ -259,7 +273,7 @@ sw::juce::pitchtool::Editor::Editor(sw::juce::pitchtool::Processor &processor)
     : ::juce::AudioProcessorEditor(&processor)
     , m_processor(processor)
     , m_plotComponent(processor)
-    , m_tuningComponent(processor.parameterState())
+    , m_tuningComponent(processor)
     , m_channelComponents(containers::makeArray<Processor::NumChannels>(
         [&](const size_t channel) { return ChannelComponent(processor, channel); }))
     , m_mixComponent(processor.parameterState())

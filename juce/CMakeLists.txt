@@ -53,8 +53,24 @@ target_compile_definitions(${PROJECT_NAME}
     JUCE_VST3_CAN_REPLACE_VST2=0
     )
 
+set(RESOURCE_LIB ${PROJECT_NAME}_resources)
+juce_add_binary_data(${RESOURCE_LIB}
+    SOURCES
+    resources/reset_midi.png
+    resources/reset_midi.svg
+    NAMESPACE ${RESOURCE_LIB}
+    )
+if(CMAKE_COMPILER_IS_GNUCXX)
+    message("detected gcc: setting position independent code for resources lib")
+    set_target_properties(${RESOURCE_LIB}
+        PROPERTIES
+        POSITION_INDEPENDENT_CODE TRUE
+        )
+endif()
+
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
+    ${PROJECT_NAME}_resources
     juce::juce_audio_utils
     juce::juce_graphics
     juce::juce_gui_basics

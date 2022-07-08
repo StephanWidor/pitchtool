@@ -22,7 +22,7 @@ constexpr int processingToMidiChannel(const size_t channel)
 
 constexpr size_t midiToProcessingChannel(const int channel)
 {
-    return static_cast<size_t>(channel) - 1u;
+    return static_cast<size_t>(channel - 1);
 }
 
 }    // namespace tuning
@@ -54,7 +54,7 @@ public:
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
 
-    void resetMidi() { m_currentMidiNotes.fill(std::nullopt); }
+    void resetMidi() { m_currentMidiTunes.fill(nullMidiTune); }
 
     double getTailLengthSeconds() const override { return 0.0; }
 
@@ -101,7 +101,8 @@ public:
 
 private:
     static constexpr size_t m_signalBufferSize{48000u};
-    std::array<std::optional<Note>, NumChannels> m_currentMidiNotes;
+    static constexpr sw::pitchtool::tuning::MidiTune nullMidiTune{-1, 8192};
+    std::array<sw::pitchtool::tuning::MidiTune, NumChannels> m_currentMidiTunes{nullMidiTune};
     ::sw::pitchtool::Processor<float, NumChannels> m_pitchProcessor{2048u, 4u};
     ::sw::ProcessingBuffer<float> m_processingBuffer;
 

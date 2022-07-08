@@ -68,22 +68,31 @@ public:
         };
 
         const auto tuningFactor = [&](const tuning::Type &type, TuningNoteEnvelope<F> &tuningEnvelope) {
-            const auto noteFactor = [&](const Note &note) {
+            const auto noteFactor = [&](const Note &note, const float deviation = math::zero<F>) {
                 const auto envelopeFactor = tuningEnvelope.process(note, tuningParameters.attackTime, timeDiff);
+
                 if (m_inputState.fundamentalFrequency <= math::zero<F>)
                     return math::one<F>;
-                const auto noteFrequency = toFrequency(note, tuningParameters.standardPitch);
+
+                const auto noteFrequency = toFrequency<F>(note, tuningParameters.standardPitch, deviation);
+
                 const auto tunedFrequency =
                   std::pow(static_cast<F>(2), envelopeFactor * std::log2(m_inputState.fundamentalFrequency) +
                                                 (math::one<F> - envelopeFactor) * std::log2(noteFrequency));
+
                 return tunedFrequency / m_inputState.fundamentalFrequency;
             };
+
+            const auto midiTuneFactor = [&](const tuning::MidiTune midiTune) {
+                return noteFactor(fromMidi(midiTune.midiNoteNumber), midiPitchBendToSemitones<F>(midiTune.pitchBend));
+            };
+
             return std::visit(overloaded{[](std::monostate) { return math::one<F>; },
                                          [&](tuning::AutoTune) {
                                              return noteFactor(toNote(m_inputState.fundamentalFrequency.load(),
                                                                       tuningParameters.standardPitch));
                                          },
-                                         [&](const Note &note) { return noteFactor(note); }},
+                                         [&](const tuning::MidiTune &midiTune) { return midiTuneFactor(midiTune); }},
                               type);
         };
 

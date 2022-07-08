@@ -15,7 +15,13 @@ namespace tuning {
 struct AutoTune
 {};
 
-using Type = std::variant<std::monostate, AutoTune, Note>;
+struct MidiTune
+{
+    int midiNoteNumber{69};
+    int pitchBend{8192};
+};
+
+using Type = std::variant<std::monostate, AutoTune, MidiTune>;
 constexpr auto numTypes = std::variant_size_v<Type>;
 constexpr std::array<std::string_view, numTypes> typeNames{"No Tuning", "Midi", "Auto Tune"};
 

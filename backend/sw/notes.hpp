@@ -75,14 +75,20 @@ inline std::string toString(const Note &note)
              std::string(Note::nameStrings[static_cast<size_t>(note.name)]) + " " + std::to_string(note.level);
 }
 
-inline int toMidi(const Note &note)
+constexpr int toMidi(const Note &note)
 {
     return (note.level + 2) * 12 + static_cast<int>(note.name);
 }
 
-inline Note fromMidi(const int midiNumber)
+constexpr Note fromMidi(const int midiNumber)
 {
     return {Note::Name(midiNumber > 0 ? midiNumber % 12 : midiNumber % 12 + 12), (midiNumber / 12) - 2};
+}
+
+template<std::floating_point F>
+constexpr F midiPitchBendToSemitones(const int pitchBend, const F fullBendInSemitones = static_cast<F>(2))
+{
+    return fullBendInSemitones * static_cast<F>(pitchBend - 8192) / static_cast<F>(8192);
 }
 
 template<std::floating_point F>

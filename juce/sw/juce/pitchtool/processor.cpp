@@ -71,23 +71,33 @@ juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout(const 
     return {parameters.begin(), parameters.end()};
 }
 
-void processMidiNotes(const ::juce::MidiBuffer &midiBuffer,
-                      std::array<std::optional<sw::Note>, sw::juce::pitchtool::Processor::NumChannels> &o_midiNotes)
+void processMidiBuffer(
+  const ::juce::MidiBuffer &midiBuffer,
+  std::array<sw::pitchtool::tuning::MidiTune, sw::juce::pitchtool::Processor::NumChannels> &o_midiTunes)
 {
     using namespace sw::juce::pitchtool;
     for (const auto &metaMessage : midiBuffer)
     {
         const auto message = metaMessage.getMessage();
-        const auto channel = tuning::midiToProcessingChannel(message.getChannel());
-        if (channel < Processor::NumChannels)
+        const auto midiChannel = message.getChannel();
+        const auto processingChannel = tuning::midiToProcessingChannel(message.getChannel());
+
+        if (processingChannel < o_midiTunes.size())
         {
+            auto &midiTune = o_midiTunes[processingChannel];
             if (message.isNoteOn())
-                o_midiNotes[channel] = sw::fromMidi(message.getNoteNumber());
-            else if (message.isNoteOff() && o_midiNotes[channel] != std::nullopt &&
-                     message.getNoteNumber() == sw::toMidi(*o_midiNotes[channel]))
-            {
-                o_midiNotes[channel] = std::nullopt;
-            }
+                midiTune.midiNoteNumber = message.getNoteNumber();
+            else if (message.isNoteOff() && message.getNoteNumber() == midiTune.midiNoteNumber)
+                midiTune.midiNoteNumber = -1;
+        }
+
+        if (message.isPitchWheel())
+        {
+            const auto pitchWheelValue = message.getPitchWheelValue();
+            if (midiChannel == 0)
+                std::ranges::for_each(o_midiTunes, [&](auto &midiTune) { midiTune.pitchBend = pitchWheelValue; });
+            else if (processingChannel < o_midiTunes.size())
+                o_midiTunes[processingChannel].pitchBend = pitchWheelValue;
         }
     }
 }
@@ -120,14 +130,13 @@ sw::pitchtool::ChannelParameters<float> sw::juce::pitchtool::Processor::channelP
 {
     const auto channelAsString = std::to_string(channel);
 
-    const auto tuningType = [&]() {
+    const auto tuningType = [&]() -> sw::pitchtool::tuning::Type {
         const auto typeAsInt = parameterValue<int>("tuning_" + channelAsString);
-        ::sw::pitchtool::tuning::Type type;
-        if (typeAsInt == tuning::Midi && m_currentMidiNotes[channel] != std::nullopt)
-            type = *m_currentMidiNotes[channel];
+        if (typeAsInt == tuning::Midi && m_currentMidiTunes[channel].midiNoteNumber > 0)
+            return m_currentMidiTunes[channel];
         else if (typeAsInt == tuning::AutoTune)
-            type = ::sw::pitchtool::tuning::AutoTune{};
-        return type;
+            return sw::pitchtool::tuning::AutoTune{};
+        return {};
     };
 
     return {tuningType(), parameterValue<float>("pitchShift_" + channelAsString),
@@ -138,7 +147,7 @@ sw::pitchtool::ChannelParameters<float> sw::juce::pitchtool::Processor::channelP
 void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &audioBuffer,
                                                   ::juce::MidiBuffer &midiBuffer)
 {
-    processMidiNotes(midiBuffer, m_currentMidiNotes);
+    processMidiBuffer(midiBuffer, m_currentMidiTunes);
 
     const auto processStep = [&](auto &&inStepSignal, auto &&outStepSignal) {
         m_pitchProcessor.process(inStepSignal, outStepSignal, static_cast<float>(getSampleRate()), tuningParameters(),
@@ -154,8 +163,7 @@ void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &au
 void sw::juce::pitchtool::Processor::processBlockBypassed(::juce::AudioBuffer<float> &audioBuffer,
                                                           ::juce::MidiBuffer &midiBuffer)
 {
-    for (auto &note : m_currentMidiNotes)
-        note = std::nullopt;
+    resetMidi();
 
     const auto processStep = [&](auto &&inStepSignal, auto &&outStepSignal) {
         m_pitchProcessor.processByPassed(inStepSignal, outStepSignal);

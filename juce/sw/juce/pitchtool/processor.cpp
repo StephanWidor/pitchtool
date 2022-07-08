@@ -81,10 +81,13 @@ void processMidiNotes(const ::juce::MidiBuffer &midiBuffer,
         const auto channel = tuning::midiToProcessingChannel(message.getChannel());
         if (channel < Processor::NumChannels)
         {
-            if (message.isNoteOff())
-                o_midiNotes[channel] = std::nullopt;
-            else if (message.isNoteOn())
+            if (message.isNoteOn())
                 o_midiNotes[channel] = sw::fromMidi(message.getNoteNumber());
+            else if (message.isNoteOff() && o_midiNotes[channel] != std::nullopt &&
+                     message.getNoteNumber() == sw::toMidi(*o_midiNotes[channel]))
+            {
+                o_midiNotes[channel] = std::nullopt;
+            }
         }
     }
 }

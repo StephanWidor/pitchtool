@@ -15,7 +15,7 @@ public:
         Vertical
     };
 
-    NoteDisplay(Layout);
+    NoteDisplay(Layout, float cornerSize = 5.0f);
 
     void set(float frequency, float standardPitch);
 
@@ -27,15 +27,16 @@ public:
 
     enum ColourIds
     {
-        backgroundColourId = ::juce::TextEditor::backgroundColourId
+        backgroundColourId = ::juce::TextEditor::backgroundColourId,
+        borderColourId = ::juce::TextEditor::outlineColourId
     };
 
 private:
     ::juce::Rectangle<float> setLabelBounds();
-
     Note m_note;
     float m_semitoneDeviation{0.0f};
     Layout m_layout{Layout::Horizontal};
+    float m_cornerSize{5.0f};
     ::juce::Label m_label;
     //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)
 };

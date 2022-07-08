@@ -166,7 +166,8 @@ public:
 
     enum ColourIds
     {
-        backgroundColourId = ::juce::TextEditor::backgroundColourId
+        backgroundColourId = ::juce::TextEditor::backgroundColourId,
+        borderColourId = ::juce::TextEditor::outlineColourId
     };
 
     std::vector<Graph> graphs;

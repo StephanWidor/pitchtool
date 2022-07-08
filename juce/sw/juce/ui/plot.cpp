@@ -72,6 +72,11 @@ void sw::juce::ui::plot::Plot::setRanges(const ::juce::Range<float> &xRange, con
 void sw::juce::ui::plot::Plot::paint(::juce::Graphics &juceGraphics)
 {
     juceGraphics.fillAll(getLookAndFeel().findColour(backgroundColourId));
+
+    constexpr auto strokeWidth = 2.0f;
+    juceGraphics.setColour(getLookAndFeel().findColour(Plot::borderColourId));
+    juceGraphics.drawRect(getLocalBounds().toFloat());
+
     const auto plotArea = getLocalBounds().toFloat().reduced(10.0f, 10.0f);
     for (auto &graph : graphs)
         graph.paint(juceGraphics, m_xRange, m_yRange, plotArea);

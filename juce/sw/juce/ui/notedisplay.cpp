@@ -1,6 +1,6 @@
 #include "sw/juce/ui/notedisplay.h"
 
-sw::juce::ui::NoteDisplay::NoteDisplay(Layout layout): m_layout(layout)
+sw::juce::ui::NoteDisplay::NoteDisplay(Layout layout, float cornerSize): m_layout(layout), m_cornerSize(cornerSize)
 {
     m_label.setJustificationType(::juce::Justification::centred);
     m_label.setMinimumHorizontalScale(0.1f);
@@ -44,51 +44,59 @@ void sw::juce::ui::NoteDisplay::set(const sw::Note &note, const float semitoneDe
 
 void sw::juce::ui::NoteDisplay::paint(::juce::Graphics &graphics)
 {
-    graphics.fillAll(getLookAndFeel().findColour(backgroundColourId));
+    const auto localBounds = getLocalBounds().toFloat();
+
+    graphics.setColour(getLookAndFeel().findColour(backgroundColourId));
+    graphics.fillRoundedRectangle(localBounds, m_cornerSize);
+
+    constexpr auto strokeWidth = 2.0f;
+    graphics.setColour(getLookAndFeel().findColour(NoteDisplay::borderColourId));
+    graphics.drawRoundedRectangle(getLocalBounds().toFloat(), m_cornerSize, strokeWidth);
 
     if (m_note.name == Note::Name::Invalid)
         return;
 
-    const auto localBounds = getLocalBounds().toFloat();
     const auto center = localBounds.getCentre();
 
     if (m_layout == Layout::Horizontal)
     {
-        const auto outerX = std::clamp(center.getX() + 0.5f * localBounds.getWidth() * m_semitoneDeviation,
-                                       localBounds.getX(), localBounds.getRight());
+        const auto drawBounds = localBounds.reduced(std::max(m_cornerSize, strokeWidth), strokeWidth);
+        const auto outerX = std::clamp(center.getX() + drawBounds.getWidth() * m_semitoneDeviation, drawBounds.getX(),
+                                       drawBounds.getRight());
         if (math::equal(outerX, center.getX(), 1.0f))
         {
             graphics.setColour(::juce::Colours::green);
-            ::juce::Rectangle<float> deviationRect(::juce::Point<float>(center.getX() - 1.0f, localBounds.getY()),
-                                                   ::juce::Point<float>(center.getX() + 1.0f, localBounds.getBottom()));
+            ::juce::Rectangle<float> deviationRect(::juce::Point<float>(center.getX() - 1.0f, drawBounds.getY()),
+                                                   ::juce::Point<float>(center.getX() + 1.0f, drawBounds.getBottom()));
             graphics.fillRect(deviationRect);
         }
         else
         {
             graphics.setGradientFill(::juce::ColourGradient(::juce::Colours::green, center, ::juce::Colours::red,
                                                             ::juce::Point<float>(outerX, center.getY()), false));
-            ::juce::Rectangle<float> deviationRect(::juce::Point<float>(center.getX(), localBounds.getY()),
-                                                   ::juce::Point<float>(outerX, localBounds.getBottom()));
+            ::juce::Rectangle<float> deviationRect(::juce::Point<float>(center.getX(), drawBounds.getY()),
+                                                   ::juce::Point<float>(outerX, drawBounds.getBottom()));
             graphics.fillRect(deviationRect);
         }
     }
     else
     {
-        const auto outerY = std::clamp(center.getY() - 0.5f * localBounds.getHeight() * m_semitoneDeviation,
-                                       localBounds.getY(), localBounds.getBottom());
+        const auto drawBounds = localBounds.reduced(strokeWidth, std::max(m_cornerSize, strokeWidth));
+        const auto outerY = std::clamp(center.getY() - drawBounds.getHeight() * m_semitoneDeviation, drawBounds.getY(),
+                                       drawBounds.getBottom());
         if (math::equal(outerY, center.getY(), 1.0f))
         {
             graphics.setColour(::juce::Colours::green);
-            ::juce::Rectangle<float> deviationRect(::juce::Point<float>(localBounds.getX(), center.getY() - 1.0f),
-                                                   ::juce::Point<float>(localBounds.getRight(), center.getY() + 1.0f));
+            ::juce::Rectangle<float> deviationRect(::juce::Point<float>(drawBounds.getX(), center.getY() - 1.0f),
+                                                   ::juce::Point<float>(drawBounds.getRight(), center.getY() + 1.0f));
             graphics.fillRect(deviationRect);
         }
         else
         {
             graphics.setGradientFill(::juce::ColourGradient(::juce::Colours::green, center, ::juce::Colours::red,
                                                             ::juce::Point<float>(center.getX(), outerY), false));
-            ::juce::Rectangle<float> deviationRect(::juce::Point<float>(localBounds.getX(), center.getY()),
-                                                   ::juce::Point<float>(localBounds.getRight(), outerY));
+            ::juce::Rectangle<float> deviationRect(::juce::Point<float>(drawBounds.getX(), center.getY()),
+                                                   ::juce::Point<float>(drawBounds.getRight(), outerY));
             graphics.fillRect(deviationRect);
         }
     }

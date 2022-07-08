@@ -7,7 +7,7 @@ namespace sw::juce::ui {
 class GroupComponent : public ::juce::Component
 {
 public:
-    GroupComponent(const std::string &label, float cornerSize = 10.0f, bool drawBorder = false);
+    GroupComponent(const std::string &label, float cornerSize = 5.0f, bool drawBorder = false);
 
     void paint(::juce::Graphics &) override;
 
@@ -15,12 +15,12 @@ public:
 
     enum ColourIds
     {
-        borderColourId = ::juce::TextEditor::textColourId
+        borderColourId = ::juce::TextEditor::outlineColourId
     };
 
 private:
     ::juce::Label m_label;
-    float m_cornerSize{10.0f};
+    float m_cornerSize{5.0f};
     bool m_drawBorder{false};
 
     //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)

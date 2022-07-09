@@ -135,7 +135,7 @@ sw::pitchtool::ChannelParameters<float> sw::juce::pitchtool::Processor::channelP
         if (typeAsInt == tuning::Midi && m_currentMidiTunes[channel].midiNoteNumber > 0)
             return m_currentMidiTunes[channel];
         else if (typeAsInt == tuning::AutoTune)
-            return sw::pitchtool::tuning::AutoTune{};
+            return sw::pitchtool::tuning::AutoTune{m_currentMidiTunes[channel]};
         return {};
     };
 

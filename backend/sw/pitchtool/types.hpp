@@ -12,12 +12,17 @@ namespace sw::pitchtool {
 
 namespace tuning {
 
-struct AutoTune
-{};
-
 struct MidiTune
 {
-    int midiNoteNumber{69};
+    int midiNoteNumber{-1};    ///< greater 0 -> tune to midi note, otherwise no tune
+    int pitchBend{8192};
+};
+
+struct AutoTune
+{
+    AutoTune(const MidiTune midiTune): midiNoteNumber(midiTune.midiNoteNumber), pitchBend(midiTune.pitchBend) {}
+
+    int midiNoteNumber{-1};    ///< greater 0 -> tune to midi note, otherwise autotune
     int pitchBend{8192};
 };
 
@@ -93,7 +98,7 @@ struct ChannelState
     std::vector<F> phases;
     std::vector<F> accumulator;
     containers::SpinLockedBuffer<SpectrumValue<F>> spectrum;
-    std::atomic<F> fundamentalFrequency{math::zero<F>};
+    std::atomic<F> fundamentalFrequency{math::zero<F>};    ///< leq 0 means no fundamental frequency found
 };
 
 }    // namespace sw::pitchtool

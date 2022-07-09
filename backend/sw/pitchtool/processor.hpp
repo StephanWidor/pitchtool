@@ -68,6 +68,15 @@ public:
         };
 
         const auto tuningFactor = [&](const tuning::Type &type, TuningNoteEnvelope<F> &tuningEnvelope) {
+            const auto autoTuneToNote = [&](const tuning::AutoTune &autoTune) {
+                return autoTune.midiNoteNumber >= 0 ?
+                         fromMidi(autoTune.midiNoteNumber) :
+                         toNote(m_inputState.fundamentalFrequency.load(), tuningParameters.standardPitch);
+            };
+            const auto midiTuneToNote = [&](const tuning::MidiTune &midiTune) {
+                return midiTune.midiNoteNumber >= 0 ? fromMidi(midiTune.midiNoteNumber) : Note{Note::Name::Invalid, 0};
+            };
+
             const auto noteFactor = [&](const Note &note, const float deviation = math::zero<F>) {
                 const auto envelopeFactor = tuningEnvelope.process(note, tuningParameters.attackTime, timeDiff);
 
@@ -83,16 +92,15 @@ public:
                 return tunedFrequency / m_inputState.fundamentalFrequency;
             };
 
-            const auto midiTuneFactor = [&](const tuning::MidiTune midiTune) {
-                return noteFactor(fromMidi(midiTune.midiNoteNumber), midiPitchBendToSemitones<F>(midiTune.pitchBend));
-            };
-
             return std::visit(overloaded{[](std::monostate) { return math::one<F>; },
-                                         [&](tuning::AutoTune) {
-                                             return noteFactor(toNote(m_inputState.fundamentalFrequency.load(),
-                                                                      tuningParameters.standardPitch));
+                                         [&](const tuning::AutoTune autoTune) {
+                                             return noteFactor(autoTuneToNote(autoTune),
+                                                               midiPitchBendToSemitones<F>(autoTune.pitchBend));
                                          },
-                                         [&](const tuning::MidiTune &midiTune) { return midiTuneFactor(midiTune); }},
+                                         [&](const tuning::MidiTune midiTune) {
+                                             return noteFactor(midiTuneToNote(midiTune),
+                                                               midiPitchBendToSemitones<F>(midiTune.pitchBend));
+                                         }},
                               type);
         };
 
@@ -105,7 +113,9 @@ public:
 
             const auto pitchFactor =
               tuningFactor(parameters.tuningType, io_state.tuningEnvelope) * semitonesToFactor(parameters.pitchShift);
+
             io_state.fundamentalFrequency = pitchFactor * m_inputState.fundamentalFrequency;
+
             dft::shiftPitch<F>(pitchFactor, m_inputState.binSpectrum, io_state.binSpectrum);
 
             const auto formantsFactor = semitonesToFactor(parameters.formantsShift);
@@ -125,7 +135,9 @@ public:
             shiftPhases<F>(io_state.phases, frequencies<F>(io_state.binSpectrum), timeDiff, io_state.phases);
 
             dft::toBinCoefficients<F>(io_state.binSpectrum, io_state.phases, m_coefficients);
+
             m_fft.transform_inverse(m_coefficients, m_processingSignal, false);
+
             std::transform(m_processingSignal.begin(), m_processingSignal.end(), m_signalWindow.begin(),
                            m_processingSignal.begin(),
                            [factor = static_cast<F>(0.6)](const auto s, const auto w) { return factor * s * w; });

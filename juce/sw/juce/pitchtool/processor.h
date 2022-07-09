@@ -54,7 +54,7 @@ public:
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
 
-    void resetMidi() { m_currentMidiTunes.fill(nullMidiTune); }
+    void resetMidi() { m_currentMidiTunes.fill({}); }
 
     double getTailLengthSeconds() const override { return 0.0; }
 
@@ -101,8 +101,7 @@ public:
 
 private:
     static constexpr size_t m_signalBufferSize{48000u};
-    static constexpr sw::pitchtool::tuning::MidiTune nullMidiTune{-1, 8192};
-    std::array<sw::pitchtool::tuning::MidiTune, NumChannels> m_currentMidiTunes{nullMidiTune};
+    std::array<sw::pitchtool::tuning::MidiTune, NumChannels> m_currentMidiTunes;
     ::sw::pitchtool::Processor<float, NumChannels> m_pitchProcessor{2048u, 4u};
     ::sw::ProcessingBuffer<float> m_processingBuffer;
 

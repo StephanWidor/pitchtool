@@ -67,7 +67,7 @@ private:
 class ChannelComponent : public ui::GroupComponent
 {
 public:
-    ChannelComponent(Processor &, size_t channel);
+    ChannelComponent(Processor &, size_t oneBasedChannel);
 
     void resized() override;
 

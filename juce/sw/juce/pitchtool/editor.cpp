@@ -15,16 +15,17 @@ std::array<::juce::Colour, sw::juce::pitchtool::Processor::NumChannels> signalGr
 
 constexpr auto NumSpectrumGraphs{sw::juce::pitchtool::Processor::NumChannels + 1U};
 
-std::array<::juce::Colour, NumSpectrumGraphs> spectrumGraphColors{::juce::Colour::fromRGBA(42u, 131u, 200u, 200u),
-                                                                  ::juce::Colour::fromRGBA(200u, 127u, 36u, 200u),
-                                                                  ::juce::Colour::fromRGBA(193u, 193u, 193u, 200u)};
+std::array<::juce::Colour, 4> spectrumGraphColors{
+  ::juce::Colour::fromRGBA(42u, 131u, 200u, 200u), ::juce::Colour::fromRGBA(200u, 127u, 36u, 200u),
+  ::juce::Colour::fromRGBA(24u, 200u, 78u, 200u), ::juce::Colour::fromRGBA(193u, 193u, 193u, 200u)};
 
 std::vector<sw::juce::ui::plot::Graph> makeSpectrumGraphs()
 {
     std::vector<sw::juce::ui::plot::Graph> graphs;
     graphs.reserve(NumSpectrumGraphs);
+    constexpr auto colorOffset = spectrumGraphColors.size() - NumSpectrumGraphs;
     for (auto i = 0u; i < NumSpectrumGraphs; ++i)
-        graphs.emplace_back(spectrumGraphColors[i], sw::juce::ui::plot::DrawType::LinesFromBottom, 2.0f);
+        graphs.emplace_back(spectrumGraphColors[colorOffset + i], sw::juce::ui::plot::DrawType::LinesFromBottom, 2.0f);
     return graphs;
 }
 
@@ -196,21 +197,21 @@ void sw::juce::pitchtool::TuningComponent::setFrequency(const float frequency, c
     m_noteDisplay.set(frequency, standardPitch);
 }
 
-sw::juce::pitchtool::ChannelComponent::ChannelComponent(Processor &processor, size_t channel)
-    : ui::GroupComponent("Channel " + std::to_string(channel), marginsSize, true)
-    , m_tuningAttachment(processor.parameterState(), "tuning_" + ::juce::String(channel), m_tuningComboBox)
-    , m_pitchShiftAttachment(processor.parameterState(), "pitchShift_" + ::juce::String(channel), m_pitchShiftSlider)
-    , m_formantsShiftAttachment(processor.parameterState(), "formantsShift_" + ::juce::String(channel),
+sw::juce::pitchtool::ChannelComponent::ChannelComponent(Processor &processor, size_t oneBasedChannel)
+    : ui::GroupComponent("Channel " + std::to_string(oneBasedChannel), marginsSize, true)
+    , m_tuningAttachment(processor.parameterState(), "tuning_" + ::juce::String(oneBasedChannel), m_tuningComboBox)
+    , m_pitchShiftAttachment(processor.parameterState(), "pitchShift_" + ::juce::String(oneBasedChannel),
+                             m_pitchShiftSlider)
+    , m_formantsShiftAttachment(processor.parameterState(), "formantsShift_" + ::juce::String(oneBasedChannel),
                                 m_formantsShiftSlider)
 {
     m_tuningComboBox.addItem(std::string(::sw::pitchtool::tuning::typeNames[tuning::NoTuning]), 1);
-    m_tuningComboBox.addItem(std::string(::sw::pitchtool::tuning::typeNames[tuning::Midi]) + " Ch" +
-                               std::to_string(tuning::processingToMidiChannel(channel)),
-                             2);
+    m_tuningComboBox.addItem(
+      std::string(::sw::pitchtool::tuning::typeNames[tuning::Midi]) + " Ch" + std::to_string(oneBasedChannel), 2);
     m_tuningComboBox.addItem(std::string(::sw::pitchtool::tuning::typeNames[tuning::AutoTune]), 3);
 
     // doesn't seem to be initially synced, so we do that by hand
-    m_tuningComboBox.setSelectedId(processor.parameterValue<int>("tuning_" + std::to_string(channel)) + 1);
+    m_tuningComboBox.setSelectedId(processor.parameterValue<int>("tuning_" + std::to_string(oneBasedChannel)) + 1);
 
     addAndMakeVisible(m_tuningComponent);
     m_tuningComponent.addAndMakeVisible(m_tuningComboBox);
@@ -246,11 +247,11 @@ void sw::juce::pitchtool::ChannelComponent::setFrequency(const float frequency, 
 sw::juce::pitchtool::MixComponent::MixComponent(::juce::AudioProcessorValueTreeState &processorState)
     : ui::GroupComponent("Out Mix", marginsSize, true)
     , m_channelSliders(containers::makeArray<Processor::NumChannels>(
-        [&](const size_t channel) { return ui::RoundSlider("Channel " + std::to_string(channel)); }))
+        [&](const size_t channel) { return ui::RoundSlider("Channel " + std::to_string(channel + 1)); }))
     , m_dryAttachment(processorState, "dryMixGain", m_drySlider)
     , m_channelAttachments(containers::makeArray<Processor::NumChannels>([&](const size_t channel) {
         return ::juce::AudioProcessorValueTreeState::SliderAttachment(
-          processorState, "mixGain_" + ::juce::String(channel), m_channelSliders[channel]);
+          processorState, "mixGain_" + ::juce::String(channel + 1), m_channelSliders[channel]);
     }))
 {
     addAndMakeVisible(m_drySlider);
@@ -275,11 +276,11 @@ sw::juce::pitchtool::Editor::Editor(sw::juce::pitchtool::Processor &processor)
     , m_plotComponent(processor)
     , m_tuningComponent(processor)
     , m_channelComponents(containers::makeArray<Processor::NumChannels>(
-        [&](const size_t channel) { return ChannelComponent(processor, channel); }))
+        [&](const size_t channel) { return ChannelComponent(processor, channel + 1); }))
     , m_mixComponent(processor.parameterState())
 {
-    setSize(600, 800);
-    setResizeLimits(300, 400, 900, 1200);
+    setSize(600, 900);
+    setResizeLimits(300, 450, 900, 1350);
 
     addAndMakeVisible(m_plotComponent);
     addAndMakeVisible(m_tuningComponent);
@@ -311,29 +312,24 @@ void sw::juce::pitchtool::Editor::resized()
 {
     const auto editorBounds = getLocalBounds().toFloat();
 
-    const auto plotsHeight = 0.2f * editorBounds.getHeight();
-    const auto otherHeight = (editorBounds.getHeight() - plotsHeight) / static_cast<float>(Processor::NumChannels + 1);
+    const auto rowHeight = editorBounds.getHeight() / static_cast<float>(Processor::NumChannels + 2);
     const auto mixWidth = 0.25f * editorBounds.getWidth();
     const auto otherWidth = editorBounds.getWidth() - mixWidth;
 
-    m_plotComponent.setBounds(editorBounds.withHeight(plotsHeight).reduced(marginsSize).toNearestInt());
+    m_plotComponent.setBounds(editorBounds.withHeight(rowHeight).reduced(marginsSize).toNearestInt());
 
     m_tuningComponent.setBounds(
-      editorBounds.withY(plotsHeight).withHeight(otherHeight).reduced(marginsSize).toNearestInt());
+      editorBounds.withY(rowHeight).withHeight(rowHeight).reduced(marginsSize).toNearestInt());
 
-    const auto templateBounds = editorBounds.withWidth(otherWidth).withHeight(otherHeight);
+    const auto templateBounds = editorBounds.withWidth(otherWidth).withHeight(rowHeight);
     for (auto channel = 0u; channel < Processor::NumChannels; ++channel)
     {
         m_channelComponents[channel].setBounds(
-          templateBounds.withY(plotsHeight + static_cast<float>(channel + 1) * otherHeight)
-            .reduced(marginsSize)
-            .toNearestInt());
+          templateBounds.withY(static_cast<float>(channel + 2) * rowHeight).reduced(marginsSize).toNearestInt());
     }
 
-    m_mixComponent.setBounds(editorBounds.withTrimmedLeft(otherWidth)
-                               .withTrimmedTop(plotsHeight + otherHeight)
-                               .reduced(marginsSize)
-                               .toNearestInt());
+    m_mixComponent.setBounds(
+      editorBounds.withTrimmedLeft(otherWidth).withTrimmedTop(2.0f * rowHeight).reduced(marginsSize).toNearestInt());
 }
 
 void sw::juce::pitchtool::Editor::changeListenerCallback(::juce::ChangeBroadcaster *sender)

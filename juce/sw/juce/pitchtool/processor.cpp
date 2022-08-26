@@ -37,27 +37,27 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createTuningParameterGroup
                                                     ::sw::pitchtool::defaultTuningParameters<float>().attackTime));
 }
 
-std::unique_ptr<::juce::AudioProcessorParameterGroup> createChannelGroup(const size_t channel)
+std::unique_ptr<::juce::AudioProcessorParameterGroup> createChannelGroup(const size_t zeroBasedChannel)
 {
     static constexpr auto defaultChannelParameters =
       sw::pitchtool::defaultChannelParameters<float, sw::juce::pitchtool::Processor::NumChannels>();
 
-    const ::juce::String channelAsString(channel);
-    const auto &defaultParameters = defaultChannelParameters[channel];
+    const ::juce::String oneBasedChannelAsString(zeroBasedChannel + 1);
+    const auto &defaultParameters = defaultChannelParameters[zeroBasedChannel];
     return std::make_unique<juce::AudioProcessorParameterGroup>(
-      "channel_" + channelAsString, "Channel " + channelAsString, "|",
+      "channel_" + oneBasedChannelAsString, "Channel " + oneBasedChannelAsString, "|",
       std::make_unique<::juce::AudioParameterInt>(
-        "tuning_" + channelAsString, "Tuning " + channelAsString, sw::juce::pitchtool::tuning::NoTuning,
+        "tuning_" + oneBasedChannelAsString, "Tuning " + oneBasedChannelAsString, sw::juce::pitchtool::tuning::NoTuning,
         sw::juce::pitchtool::tuning::AutoTune, sw::juce::pitchtool::tuning::NoTuning),
-      std::make_unique<::juce::AudioParameterFloat>("pitchShift_" + channelAsString, "Pitch Shift " + channelAsString,
-                                                    ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f),
-                                                    defaultParameters.pitchShift),
       std::make_unique<::juce::AudioParameterFloat>(
-        "formantsShift_" + channelAsString, "Formants Filter Shift " + channelAsString,
+        "pitchShift_" + oneBasedChannelAsString, "Pitch Shift " + oneBasedChannelAsString,
+        ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f), defaultParameters.pitchShift),
+      std::make_unique<::juce::AudioParameterFloat>(
+        "formantsShift_" + oneBasedChannelAsString, "Formants Filter Shift " + oneBasedChannelAsString,
         ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f), defaultParameters.formantsShift),
-      std::make_unique<::juce::AudioParameterFloat>("mixGain_" + channelAsString, "Mix " + channelAsString,
-                                                    ::juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
-                                                    defaultParameters.mixGain));
+      std::make_unique<::juce::AudioParameterFloat>(
+        "mixGain_" + oneBasedChannelAsString, "Mix " + oneBasedChannelAsString,
+        ::juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), defaultParameters.mixGain));
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout(const std::uint8_t numChannels)
@@ -80,7 +80,7 @@ void processMidiBuffer(
     {
         const auto message = metaMessage.getMessage();
         const auto midiChannel = message.getChannel();
-        const auto processingChannel = tuning::midiToProcessingChannel(message.getChannel());
+        const auto processingChannel = midiChannel - 1;
 
         if (processingChannel < o_midiTunes.size())
         {
@@ -126,16 +126,16 @@ sw::pitchtool::TuningParameters<float> sw::juce::pitchtool::Processor::tuningPar
             parameterValue<float>("attackTime")};
 }
 
-sw::pitchtool::ChannelParameters<float> sw::juce::pitchtool::Processor::channelParameters(size_t channel)
+sw::pitchtool::ChannelParameters<float> sw::juce::pitchtool::Processor::channelParameters(size_t zeroBasedChannel)
 {
-    const auto channelAsString = std::to_string(channel);
+    const auto channelAsString = std::to_string(zeroBasedChannel + 1);
 
     const auto tuningType = [&]() -> sw::pitchtool::tuning::Type {
         const auto typeAsInt = parameterValue<int>("tuning_" + channelAsString);
-        if (typeAsInt == tuning::Midi && m_currentMidiTunes[channel].midiNoteNumber > 0)
-            return m_currentMidiTunes[channel];
+        if (typeAsInt == tuning::Midi && m_currentMidiTunes[zeroBasedChannel].midiNoteNumber > 0)
+            return m_currentMidiTunes[zeroBasedChannel];
         else if (typeAsInt == tuning::AutoTune)
-            return sw::pitchtool::tuning::AutoTune{m_currentMidiTunes[channel]};
+            return sw::pitchtool::tuning::AutoTune{m_currentMidiTunes[zeroBasedChannel]};
         return {};
     };
 

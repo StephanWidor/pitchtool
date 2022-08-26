@@ -15,16 +15,6 @@ enum Type : int
     AutoTune = 2
 };
 
-constexpr int processingToMidiChannel(const size_t channel)
-{
-    return static_cast<int>(channel) + 1;
-}
-
-constexpr size_t midiToProcessingChannel(const int channel)
-{
-    return static_cast<size_t>(channel - 1);
-}
-
 }    // namespace tuning
 
 class Processor : public ::juce::AudioProcessor
@@ -92,7 +82,7 @@ public:
 
     ::sw::pitchtool::TuningParameters<float> tuningParameters();
 
-    ::sw::pitchtool::ChannelParameters<float> channelParameters(size_t channel);
+    ::sw::pitchtool::ChannelParameters<float> channelParameters(size_t zeroBasedChannel);
 
     std::array<::sw::pitchtool::ChannelParameters<float>, NumChannels> allChannelParameters()
     {

@@ -13,8 +13,7 @@ namespace sw {
 template<std::floating_point F>
 constexpr F factorToDB(const F factor)
 {
-    return factor <= math::zero<F> ? -std::numeric_limits<F>::infinity() :
-                                     static_cast<F>(20.0 / std::log2(10.0)) * std::log2(factor);
+    return factor <= math::zero<F> ? -std::numeric_limits<F>::infinity() : static_cast<F>(20) * std::log10(factor);
 }
 
 template<std::floating_point F>

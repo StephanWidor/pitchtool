@@ -123,7 +123,7 @@ bool sw::juce::pitchtool::Processor::isBusesLayoutSupported(const BusesLayout &l
 sw::pitchtool::TuningParameters<float> sw::juce::pitchtool::Processor::tuningParameters()
 {
     return {parameterValue<float>("standardPitch"), parameterValue<float>("averagingTime"),
-            parameterValue<float>("attackTime")};
+            parameterValue<float>("holdTime"), parameterValue<float>("attackTime")};
 }
 
 sw::pitchtool::ChannelParameters<float> sw::juce::pitchtool::Processor::channelParameters(size_t zeroBasedChannel)

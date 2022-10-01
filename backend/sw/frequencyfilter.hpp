@@ -18,10 +18,10 @@ public:
         assert(averagingTime >= math::zero<F>);
         assert(holdTime >= math::zero<F>);
 
-        const auto holdLength = static_cast<size_t>(std::round(holdTime / sampleTime)) + math::one<size_t>;
+        const auto holdLength = static_cast<size_t>(std::round(holdTime / sampleTime));
         if (frequency <= math::zero<F>)
         {
-            if (m_holdCount <= holdLength)
+            if (m_holdCount < holdLength)
             {
                 m_buffer.push_back(m_out);
                 ++m_holdCount;
@@ -42,8 +42,10 @@ public:
         if (averagingLength < m_buffer.size())
             m_buffer.erase(m_buffer.begin(), m_buffer.begin() + static_cast<int>(m_buffer.size() - averagingLength));
 
-        return m_out =
-                 geometricAverage<F>(m_buffer | std::views::filter([](const auto f) { return f != math::zero<F>; }));
+        m_out = std::ranges::all_of(m_buffer, [](const auto f) { return f == math::zero<F>; }) ?
+                  math::zero<F> :
+                  geometricAverage<F>(m_buffer | std::views::filter([](const auto f) { return f != math::zero<F>; }));
+        return m_out;
     }
 
     void clearBuffer() { m_buffer.clear(); }

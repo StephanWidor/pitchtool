@@ -75,39 +75,43 @@ void identifyFrequencies(std::vector<SpectrumValue<F>> &io_spectrum, const F fre
 }
 
 template<std::floating_point F, ranges::TypedInputRange<SpectrumValue<F>> Spectrum>
-SpectrumValue<F> findFundamental(Spectrum &&spectrum)
+requires std::ranges::sized_range<Spectrum> SpectrumValue<F>
+  findFundamental(Spectrum &&spectrum, const F squaredGainsThreshold, const F maxFrequency = static_cast<F>(5000))
 {
-    if (std::ranges::empty(spectrum))
+    const auto numValues = std::ranges::ssize(spectrum);
+    if (numValues == 0)
         return {};
-    if (std::ranges::ssize(spectrum) == 1)
+    if (numValues == 1)
         return *spectrum.begin();
-    const auto gainThreshold =
-      std::ranges::max_element(std::forward<Spectrum>(spectrum),
-                               [](const auto &v0, const auto &v1) { return v0.gain < v1.gain; })
-        ->gain *
-      math::oneHalf<F>;
 
-    if (gainThreshold <= dBToFactor(static_cast<F>(-60)))
+    const auto zeroThreshold = dBToFactor(static_cast<F>(-120));
+    const auto maxGain =
+      std::ranges::max_element(spectrum, [](const auto &v0, const auto &v1) { return v0.gain < v1.gain; })->gain;
+    if (maxGain <= zeroThreshold)
         return {};
+    const auto gainThreshold = static_cast<F>(0.6) * maxGain;
+    auto maxSquaredGainsSum = squaredGainsThreshold;
 
-    auto itMax = spectrum.begin();
-    auto maxHarmonicsGain = math::zero<F>;
+    auto itMax = spectrum.end();
     for (auto it = spectrum.begin(); it != spectrum.end(); ++it)
     {
         if (it->gain <= gainThreshold)
             continue;
-        auto harmonicsGain =
-          std::accumulate(it + 1, spectrum.end(), it->gain, [&](const auto accumulator, const auto &value) {
-              return isHarmonic(it->frequency, value.frequency, semitoneRatio<F>) ? accumulator + value.gain :
-                                                                                    accumulator;
-          });
-        if (harmonicsGain > maxHarmonicsGain)
+        auto harmonics = std::ranges::subrange(it, spectrum.end()) | std::views::filter([&](const auto value) {
+                             return isHarmonic(it->frequency, value.frequency, semitoneRatio<F>);
+                         });
+        const auto squaredGainsSum = ranges::accumulate<F>(
+          sw::gains<F>(harmonics) | std::views::transform([&](const auto gain) { return gain * gain; }));
+
+        if (squaredGainsSum > maxSquaredGainsSum)
         {
             itMax = it;
-            maxHarmonicsGain = harmonicsGain;
+            maxSquaredGainsSum = squaredGainsSum;
         }
     }
 
+    if (itMax == spectrum.end() || itMax->frequency > maxFrequency)
+        return {};
     return *itMax;
 }
 

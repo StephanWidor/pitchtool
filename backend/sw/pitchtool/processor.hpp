@@ -58,11 +58,16 @@ public:
         dft::toSpectrumByPhase<F>(sampleRate, timeDiff, m_inputState.phases, m_coefficients, m_inputState.binSpectrum,
                                   m_inputState.phases);
 
+        const auto squaredGainsThreshold =
+          static_cast<F>(0.3) *
+          ranges::accumulate<F>(gains<F>(m_inputState.binSpectrum) |
+                                std::views::transform([](const auto gain) { return gain * gain; }));
+
         filterSpectrum(m_inputState);
 
-        m_inputState.fundamentalFrequency =
-          m_frequencyFilter.process(findFundamental<F>(m_inputState.spectrum.inBuffer()).frequency, timeDiff,
-                                    tuningParameters.averagingTime, tuningParameters.holdTime);
+        m_inputState.fundamentalFrequency = m_frequencyFilter.process(
+          findFundamental<F>(m_inputState.spectrum.inBuffer(), squaredGainsThreshold).frequency, timeDiff,
+          tuningParameters.averagingTime, tuningParameters.holdTime);
 
         for (auto i = 0u; i < NumChannels; ++i)
             processChannel(channelParameters[i], tuningParameters, timeDiff, stepSize, m_channelStates[i]);

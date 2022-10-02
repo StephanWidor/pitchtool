@@ -75,14 +75,6 @@ void identifyFrequencies(std::vector<SpectrumValue<F>> &io_spectrum, const F fre
 }
 
 template<std::floating_point F, ranges::TypedInputRange<SpectrumValue<F>> Spectrum>
-F maxGain(Spectrum &&spectrum)
-{
-    return std::ranges::max_element(std::forward<Spectrum>(spectrum),
-                                    [](const auto &v0, const auto &v1) { return v0.gain < v1.gain; })
-      ->gain;
-}
-
-template<std::floating_point F, ranges::TypedInputRange<SpectrumValue<F>> Spectrum>
 SpectrumValue<F> findFundamental(Spectrum &&spectrum)
 {
     if (std::ranges::empty(spectrum))
@@ -107,7 +99,7 @@ SpectrumValue<F> findFundamental(Spectrum &&spectrum)
         auto harmonicsGain =
           std::accumulate(it + 1, spectrum.end(), it->gain, [&](const auto accumulator, const auto &value) {
               return isHarmonic(it->frequency, value.frequency, semitoneRatio<F>) ? accumulator + value.gain :
-                                                                                    value.gain;
+                                                                                    accumulator;
           });
         if (harmonicsGain > maxHarmonicsGain)
         {

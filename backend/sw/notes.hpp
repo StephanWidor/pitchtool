@@ -77,12 +77,12 @@ inline std::string toString(const Note &note)
 
 constexpr int toMidi(const Note &note)
 {
-    return (note.level + 2) * 12 + static_cast<int>(note.name);
+    return (note.level + 1) * 12 + static_cast<int>(note.name);
 }
 
 constexpr Note fromMidi(const int midiNumber)
 {
-    return {Note::Name(midiNumber > 0 ? midiNumber % 12 : midiNumber % 12 + 12), (midiNumber / 12) - 2};
+    return {Note::Name(midiNumber > 0 ? midiNumber % 12 : midiNumber % 12 + 12), (midiNumber / 12) - 1};
 }
 
 template<std::floating_point F>
@@ -102,13 +102,13 @@ Note toNote(const F frequency, const F standardPitch = static_cast<F>(440), F *o
     const auto diffSemitones = factorToSemitones(frequency / standardPitch);
     const auto roundDiffSemitones = std::round(diffSemitones);
     math::safeAssign(diffSemitones - roundDiffSemitones, o_semitoneDeviation);
-    return fromMidi(81 + static_cast<int>(roundDiffSemitones));
+    return fromMidi(69 + static_cast<int>(roundDiffSemitones));
 }
 
 template<std::floating_point F>
 F toFrequency(const Note &note, const F standardPitch = static_cast<F>(440), const F semitoneDeviation = math::zero<F>)
 {
-    const auto diffSemitones = static_cast<F>(toMidi(note) - 81) + semitoneDeviation;
+    const auto diffSemitones = static_cast<F>(toMidi(note) - 69) + semitoneDeviation;
     return standardPitch * semitonesToFactor(diffSemitones);
 }
 

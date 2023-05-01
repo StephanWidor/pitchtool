@@ -49,7 +49,7 @@ TYPED_TEST(SineWaveDetectionTest, detectSineWaves)
         removeSmallGains(spectrum, zeroGainThresholdLinear);
         identifyFrequencies<F>(spectrum);
 
-        const auto backFrequency = findFundamental<F>(spectrum).frequency;
+        const auto backFrequency = findFundamental<F>(spectrum, math::zero<F>, math::oneHalf<F> * sampleRate).frequency;
         const auto frequencyRatio = math::maxRatio(frequency, backFrequency);
 
         EXPECT_LE(frequencyRatio, sqrtSemitoneRatio<F>);

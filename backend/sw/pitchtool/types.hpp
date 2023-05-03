@@ -6,6 +6,7 @@
 #include "sw/notes.hpp"
 #include "sw/spectrum.hpp"
 #include "sw/tuningnoteenvelope.hpp"
+#include <algorithm>
 #include <variant>
 
 namespace sw::pitchtool {
@@ -88,9 +89,11 @@ struct ChannelState
 
     void clear()
     {
-        fundamentalFrequency = math::zero<F>;
-        spectrum.clear();
+        std::ranges::fill(binSpectrum, SpectrumValue<F>{});
+        std::ranges::fill(phases, math::zero<F>);
         containers::ringPush(accumulator, math::zero<F>, accumulator.size());
+        spectrum.clear();
+        fundamentalFrequency = math::zero<F>;
     }
 
     TuningNoteEnvelope<F> tuningEnvelope;

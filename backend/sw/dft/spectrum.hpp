@@ -17,30 +17,41 @@ void toSpectrumByPhase(const F sampleRate, const F timeDiff, ranges::TypedInputR
            std::ranges::size(binCoefficients) == std::ranges::size(lastBinPhases) &&
            std::ranges::size(binCoefficients) == std::ranges::size(o_binSpectrum) &&
            std::ranges::size(binCoefficients) == std::ranges::size(o_binPhases));
+
+    const auto correctedFrequency = [timeDiff](const auto lastPhase, const auto coefficientPhase,
+                                               const auto binFrequency) {
+        const auto expectedAngle = phaseAngle(binFrequency, timeDiff);
+        const auto expectedPhase = standardized(lastPhase + expectedAngle);
+        const auto phaseDiff = standardized(coefficientPhase - expectedPhase);
+        const auto angle = expectedAngle + phaseDiff;
+        const auto frequency = sw::frequency(angle, timeDiff);
+        return std::abs(frequency);
+    };
+
     const auto halfSignalLength = std::ranges::size(binCoefficients) - 1u;
     const auto signalLength = 2u * halfSignalLength;
 
-    // unfortunately, we don't have zip_view yet, so we do some dirty hacky storing binFrequencies and phases
-    // temporarily in o_spectrum
     const auto o_gains = gains<F>(std::forward<SpectrumRange>(o_binSpectrum));
     const auto o_frequencies = frequencies<F>(std::forward<SpectrumRange>(o_binSpectrum));
+
+    // unfortunately, we don't have zip_view yet, so we do some dirty hacky storing binFrequencies and phases
+    // temporarily in o_spectrum
+    //    std::ranges::transform(binCoefficients, o_binPhases.begin(), [](const auto &c) { return std::arg(c); });
+    //    const auto binFrequencies =
+    //      dft::binFrequencies(signalLength, sampleRate) | std::views::take(std::ranges::ssize(o_binSpectrum));
+    //    const auto phasesAndBinFrequencies = std::views::zip(lastBinPhases, o_binPhases, binFrequencies);
+    //    std::ranges::transform(phasesAndBinFrequencies, o_frequencies.begin(), correctedFrequency);
 
     std::ranges::copy(dft::binFrequencies(signalLength, sampleRate) |
                         std::views::take(std::ranges::ssize(o_binSpectrum)),
                       o_frequencies.begin());
     std::ranges::transform(binCoefficients, o_gains.begin(), [](const auto &c) { return std::arg(c); });
-    std::ranges::transform(lastBinPhases, o_binSpectrum, o_frequencies.begin(),
-                           [timeDiff](const auto lastPhase, const auto &binFrequencyAndPhase) {
-                               const auto coefficientPhase = binFrequencyAndPhase.gain;
-                               const auto binFrequency = binFrequencyAndPhase.frequency;
-                               const auto expectedAngle = phaseAngle(binFrequency, timeDiff);
-                               const auto expectedPhase = standardized(lastPhase + expectedAngle);
-                               const auto phaseDiff = standardized(coefficientPhase - expectedPhase);
-                               const auto angle = expectedAngle + phaseDiff;
-                               const auto frequency = sw::frequency(angle, timeDiff);
-                               return std::abs(frequency);
-                           });
+    std::ranges::transform(
+      lastBinPhases, o_binSpectrum, o_frequencies.begin(), [&](const auto lastPhase, const auto &binFrequencyAndPhase) {
+          return correctedFrequency(lastPhase, binFrequencyAndPhase.gain, binFrequencyAndPhase.frequency);
+      });
     std::ranges::copy(o_gains, o_binPhases.begin());
+
     std::ranges::transform(binCoefficients, o_gains.begin(),
                            [gainFactor = math::one<F> / static_cast<F>(halfSignalLength)](const auto &c) {
                                return gainFactor * std::abs(c);

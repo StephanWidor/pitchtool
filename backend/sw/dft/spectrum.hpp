@@ -60,49 +60,4 @@ void toSpectrumByPhase(const F sampleRate, const F timeDiff, ranges::TypedInputR
                            });
 }
 
-template<std::floating_point F>
-void toBinCoefficients(ranges::TypedInputRange<SpectrumValue<F>> auto &&spectrum,
-                       ranges::TypedInputRange<F> auto &&phases,
-                       ranges::TypedOutputRange<std::complex<F>> auto &&o_coefficients)
-{
-    assert(std::ranges::size(spectrum) > 1u && std::ranges::size(spectrum) == std::ranges::size(phases) &&
-           std::ranges::size(spectrum) == std::ranges::size(o_coefficients));
-    const auto halfSignalLength = std::ranges::size(o_coefficients) - 1u;
-    const auto gainFactor = static_cast<F>(halfSignalLength);
-
-    std::transform(
-      spectrum.begin(), spectrum.end(), phases.begin(), o_coefficients.begin(),
-      [&](const auto spectrumValue, const auto phase) { return std::polar(gainFactor * spectrumValue.gain, phase); });
-    o_coefficients.front().imag(math::zero<F>);
-    o_coefficients.back().imag(math::zero<F>);
-}
-
-template<std::floating_point F>
-void shiftPitch(const F pitchFactor, ranges::TypedInputRange<SpectrumValue<F>> auto &&binSpectrum,
-                ranges::TypedOutputRange<SpectrumValue<F>> auto &&o_shiftedBinSpectrum)
-{
-    assert(pitchFactor > math::zero<F>);
-
-    const auto numValues = std::ranges::ssize(binSpectrum);
-    assert(std::ranges::ssize(o_shiftedBinSpectrum) == numValues);
-
-    const auto rangeToMerge = [&](const auto i) {
-        const auto beginIndex = std::min<int>(
-          static_cast<int>(std::max(math::zero<F>, std::ceil((static_cast<F>(i) - math::oneHalf<F>) / pitchFactor))),
-          numValues);
-        const auto endIndex = std::clamp<int>(
-          static_cast<int>(std::ceil((static_cast<F>(i) + math::oneHalf<F>) / pitchFactor)), 0, numValues);
-        assert(endIndex >= beginIndex);
-        return std::views::counted(binSpectrum.begin() + beginIndex, endIndex - beginIndex);
-    };
-
-    const auto shiftedSpectrumValue = [&](const auto i) {
-        const auto range = rangeToMerge(i);
-        const auto unpitchedValue = toOneSpectrumValue<F>(range);
-        return SpectrumValue<F>{pitchFactor * unpitchedValue.frequency, unpitchedValue.gain};
-    };
-
-    std::ranges::transform(std::views::iota(0, numValues), o_shiftedBinSpectrum.begin(), shiftedSpectrumValue);
-}
-
 }    // namespace sw::dft

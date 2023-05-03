@@ -1,4 +1,4 @@
-#if __has_include(<matplotlib-cpp/matplotlibcpp.h>)
+//#if __has_include(<matplotlib-cpp/matplotlibcpp.h>)
 
 #include <gtest/gtest.h>
 #include <sw/containers/utils.hpp>
@@ -25,7 +25,7 @@ TEST(PitchProcessorTest, plotting)
     constexpr auto signalLength = numTransforms * stepSize;
     const auto binFrequencyStep = dft::binFrequencyStep(fftLength, sampleRate);
 
-    constexpr auto doPlotSpectrum = true;
+    constexpr auto doPlotSpectrum = false;
 
     using Processor = pitchtool::Processor<double, 1>;
 
@@ -70,6 +70,65 @@ TEST(PitchProcessorTest, plotting)
     }
 }
 
+TEST(PitchProcessorTest, plot_different_parameters)
+{
+    namespace plt = matplotlibcpp;
+
+    constexpr auto sampleRate = 48000.0;
+    constexpr auto fftLength = 2048u;
+    constexpr auto nyquistLength = dft::nyquistLength(fftLength);
+    constexpr auto oversampling = 4u;
+    constexpr auto stepSize = fftLength / oversampling;
+    constexpr auto numTransforms = 10u;
+    constexpr auto timeDiff = static_cast<double>(stepSize) / sampleRate;
+    constexpr auto signalLength = numTransforms * stepSize;
+    const auto binFrequencyStep = dft::binFrequencyStep(fftLength, sampleRate);
+
+    using Processor = pitchtool::Processor<double, 1>;
+
+    pitchtool::TuningParameters<double> tuneParameters{440.0, 0.0, 0.0, 0.0};
+    std::vector<pitchtool::ChannelParameters<double>> channelParameters{{std::monostate{}, 0.0, 0.0, 1.0},
+                                                                        {std::monostate{}, 12.0, 0.0, 1.0},
+                                                                        {std::monostate{}, 12.0, 7.0, 1.0},
+                                                                        {std::monostate{}, 12.0, 12.0, 1.0},
+                                                                        {std::monostate{}, 0.0, 0.0, 1.0}};
+
+    const auto minBin = 4.0;
+    const auto maxBin = 5.0;
+    const auto numFrequencies = 20u;
+    const auto minFrequency = minBin * binFrequencyStep;
+    const auto maxFrequency = maxBin * binFrequencyStep;
+    const auto frequencyStep = (maxFrequency - minFrequency) / static_cast<double>(numFrequencies - 1u);
+    for (auto frequencyIndex = 0u; frequencyIndex < numFrequencies; ++frequencyIndex)
+    {
+        const auto frequency = minFrequency + static_cast<double>(frequencyIndex) * frequencyStep;
+        const auto signal = makeSineWave<double>(1.0, frequency, sampleRate, channelParameters.size() * signalLength);
+
+        Processor processor(fftLength, oversampling);
+        std::vector<double> stepOutSignal(processor.stepSize());
+        std::vector<double> outSignal;
+
+        auto signalIt = signal.begin();
+        for (auto paramIndex = 0; paramIndex < channelParameters.size(); ++paramIndex)
+        {
+            const auto &parameters = channelParameters[paramIndex];
+            for (auto stepIndex = 0u; stepIndex < numTransforms; ++stepIndex)
+            {
+                processor.process(std::span(signalIt, stepSize), stepOutSignal, sampleRate, tuneParameters,
+                                  {parameters}, 0.0);
+                outSignal.insert(outSignal.end(), stepOutSignal.begin(), stepOutSignal.end());
+                signalIt += stepSize;
+            }
+        }
+
+        plt::figure_size(1000u, 800u);
+        plt::plot(signal, "r");
+        plt::plot(outSignal, "g");
+        plt::title(std::to_string(frequencyIndex) + ", " + std::to_string(frequency));
+        plt::show();
+    }
+}
+
 }    // namespace sw::dft::tests
 
-#endif
+//#endif

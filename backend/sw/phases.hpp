@@ -24,15 +24,20 @@ F standardized(const F phaseAngle)
 }
 
 template<std::floating_point F>
+F shiftPhase(const F phase, const F frequency, const F timeDiff)
+{
+    return standardized(phase + phaseAngle(frequency, timeDiff));
+}
+
+template<std::floating_point F>
 void shiftPhases(ranges::TypedInputRange<F> auto &&phases, ranges::TypedInputRange<F> auto &&frequencies,
                  const F timeDiff, ranges::TypedOutputRange<F> auto &&o_shiftedPhases)
 {
     assert(std::ranges::size(phases) == std::ranges::size(frequencies) &&
            std::ranges::size(phases) == std::ranges::size(o_shiftedPhases));
-    std::transform(phases.begin(), phases.end(), frequencies.begin(), o_shiftedPhases.begin(),
-                   [timeDiff](const auto phase, const auto frequency) {
-                       return standardized(phase + phaseAngle(frequency, timeDiff));
-                   });
+    std::transform(
+      phases.begin(), phases.end(), frequencies.begin(), o_shiftedPhases.begin(),
+      [timeDiff](const auto phase, const auto frequency) { return shiftPhase(phase, frequency, timeDiff); });
 }
 
 }    // namespace sw

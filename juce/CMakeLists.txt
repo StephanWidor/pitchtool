@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # AudioPluginHost from extras can be useful for debugging
 #set(JUCE_BUILD_EXTRAS ON CACHE BOOL "Add build targets for the Projucer and other tools")
-add_subdirectory(juce_lv2)
+add_subdirectory(juce-framework)
 
 set(JUCE_PLUGIN_FORMATS Standalone VST3)
 
@@ -24,7 +24,7 @@ juce_add_plugin(${PROJECT_NAME}
     VST3_CATEGORIES "Fx"
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
-    LV2_URI https://widor.site/lv2/pitchtool_juce
+    LV2URI https://widor.site/lv2/pitchtool_juce
     )
 
 target_include_directories(${PROJECT_NAME} PRIVATE .)

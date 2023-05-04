@@ -81,7 +81,8 @@ template<std::floating_point F>
 struct ChannelState
 {
     ChannelState(const size_t fftLength)
-        : binSpectrum(dft::nyquistLength(fftLength))
+        : coefficients(dft::nyquistLength(fftLength), math::zero<F>)
+        , binSpectrum(dft::nyquistLength(fftLength))
         , phases(dft::nyquistLength(fftLength))
         , accumulator(fftLength)
         , spectrum(dft::nyquistLength(fftLength), {})
@@ -89,6 +90,7 @@ struct ChannelState
 
     void clear()
     {
+        std::ranges::fill(coefficients, math::zero<F>);
         std::ranges::fill(binSpectrum, SpectrumValue<F>{});
         std::ranges::fill(phases, math::zero<F>);
         containers::ringPush(accumulator, math::zero<F>, accumulator.size());
@@ -97,6 +99,7 @@ struct ChannelState
     }
 
     TuningNoteEnvelope<F> tuningEnvelope;
+    std::vector<std::complex<F>> coefficients;
     std::vector<SpectrumValue<F>> binSpectrum;
     std::vector<F> phases;
     std::vector<F> accumulator;

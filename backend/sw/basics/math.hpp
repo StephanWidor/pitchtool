@@ -61,6 +61,13 @@ struct DefaultTolerance<N>
     static constexpr Type value = static_cast<Type>(1e5) * std::numeric_limits<Type>::epsilon();
 };
 
+template<>
+struct DefaultTolerance<float>
+{
+    using Type = float;
+    static constexpr Type value = 1e-5f;
+};
+
 template<Complex C>
 struct DefaultTolerance<C>
 {

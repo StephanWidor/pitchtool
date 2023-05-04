@@ -11,6 +11,12 @@ constexpr size_t nyquistLength(const size_t signalLength)
     return (signalLength / 2u) + 1u;
 }
 
+constexpr size_t signalLength(const size_t nyquistLength)
+{
+    assert(nyquistLength > 0u);
+    return 2u * (nyquistLength - 1u);
+}
+
 template<std::floating_point F>
 constexpr F binFrequencyStep(const size_t signalLength, const F sampleRate)
 {

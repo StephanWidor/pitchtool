@@ -161,9 +161,9 @@ sw::juce::pitchtool::TuningComponent::TuningComponent(sw::juce::pitchtool::Proce
     addAndMakeVisible(m_resetMidiButton);
 
     m_standardPitchSlider.setTextValueSuffix(" Hz");
-    m_averagingTimeSlider.setTextValueSuffix(" sec");
-    m_holdTimeSlider.setTextValueSuffix(" sec");
-    m_attackTimeSlider.setTextValueSuffix(" sec");
+    m_averagingTimeSlider.setTextValueSuffix(" ms");
+    m_holdTimeSlider.setTextValueSuffix(" ms");
+    m_attackTimeSlider.setTextValueSuffix(" ms");
 
     auto resetMidiImg = ::juce::ImageCache::getFromMemory(jucepitchtool_resources::reset_midi_png,
                                                           jucepitchtool_resources::reset_midi_pngSize);

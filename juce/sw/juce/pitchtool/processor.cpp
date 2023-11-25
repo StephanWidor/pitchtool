@@ -19,6 +19,16 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createMainParameterGroup()
       std::make_unique<::juce::AudioParameterBool>("gainsLogScale", "Gains Log Scale", true));
 }
 
+float toSeconds(const float milliseconds)
+{
+    return std::round(milliseconds / 1000.0f);
+}
+
+float toMilliseconds(const float seconds)
+{
+    return seconds * 1000.0f;
+}
+
 std::unique_ptr<::juce::AudioProcessorParameterGroup> createTuningParameterGroup()
 {
     using namespace sw::pitchtool;
@@ -32,19 +42,19 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createTuningParameterGroup
         defaultTuningParameters<float>().standardPitch),
       std::make_unique<::juce::AudioParameterFloat>(
         "averagingTime", "Averaging Time",
-        ::juce::NormalisableRange<float>(defaultTuningParameters<float>().averagingTimeRange[0],
-                                         defaultTuningParameters<float>().averagingTimeRange[1], 0.005f),
-        defaultTuningParameters<float>().averagingTime),
+        ::juce::NormalisableRange<float>(toMilliseconds(defaultTuningParameters<float>().averagingTimeRange[0]),
+                                         toMilliseconds(defaultTuningParameters<float>().averagingTimeRange[1]), 1.0f),
+        toMilliseconds(defaultTuningParameters<float>().averagingTime)),
       std::make_unique<::juce::AudioParameterFloat>(
         "holdTime", "Hold Time",
-        ::juce::NormalisableRange<float>(defaultTuningParameters<float>().holdTimeRange[0],
-                                         defaultTuningParameters<float>().holdTimeRange[1], 0.005f),
-        defaultTuningParameters<float>().holdTime),
+        ::juce::NormalisableRange<float>(toMilliseconds(defaultTuningParameters<float>().holdTimeRange[0]),
+                                         toMilliseconds(defaultTuningParameters<float>().holdTimeRange[1]), 1.0f),
+        toMilliseconds(defaultTuningParameters<float>().holdTime)),
       std::make_unique<::juce::AudioParameterFloat>(
         "attackTime", "Attack Time",
-        ::juce::NormalisableRange<float>(defaultTuningParameters<float>().attackTimeRange[0],
-                                         defaultTuningParameters<float>().attackTimeRange[1], 0.005f),
-        defaultTuningParameters<float>().attackTime));
+        ::juce::NormalisableRange<float>(toMilliseconds(defaultTuningParameters<float>().attackTimeRange[0]),
+                                         toMilliseconds(defaultTuningParameters<float>().attackTimeRange[1]), 1.0f),
+        toMilliseconds(defaultTuningParameters<float>().attackTime)));
 }
 
 std::unique_ptr<::juce::AudioProcessorParameterGroup> createChannelGroup(const size_t zeroBasedChannel)
@@ -132,8 +142,8 @@ bool sw::juce::pitchtool::Processor::isBusesLayoutSupported(const BusesLayout &l
 
 sw::pitchtool::TuningParameters<float> sw::juce::pitchtool::Processor::tuningParameters()
 {
-    return {parameterValue<float>("standardPitch"), parameterValue<float>("averagingTime"),
-            parameterValue<float>("holdTime"), parameterValue<float>("attackTime")};
+    return {parameterValue<float>("standardPitch"), toSeconds(parameterValue<float>("averagingTime")),
+            toSeconds(parameterValue<float>("holdTime")), toSeconds(parameterValue<float>("attackTime"))};
 }
 
 sw::pitchtool::ChannelParameters<float> sw::juce::pitchtool::Processor::channelParameters(size_t zeroBasedChannel)

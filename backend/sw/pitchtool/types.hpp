@@ -37,9 +37,9 @@ template<std::floating_point F>
 struct TuningParameters
 {
     F standardPitch{static_cast<F>(440)};
-    F averagingTime{static_cast<F>(0.02)};
+    F averagingTime{static_cast<F>(0.01)};
     F holdTime{static_cast<F>(0.02)};
-    F attackTime{static_cast<F>(0.02)};
+    F attackTime{static_cast<F>(0.01)};
 };
 
 template<std::floating_point F>

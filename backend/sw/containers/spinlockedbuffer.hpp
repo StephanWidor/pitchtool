@@ -43,6 +43,7 @@ public:
     {
         lock();
         m_inBuffer.clear();
+        m_newDataAvailable = true;
         unlock();
     }
 

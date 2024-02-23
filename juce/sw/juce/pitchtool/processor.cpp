@@ -71,10 +71,10 @@ std::unique_ptr<::juce::AudioProcessorParameterGroup> createChannelGroup(const s
         sw::juce::pitchtool::tuning::AutoTune, sw::juce::pitchtool::tuning::NoTuning),
       std::make_unique<::juce::AudioParameterFloat>(
         "pitchShift_" + oneBasedChannelAsString, "Pitch Shift " + oneBasedChannelAsString,
-        ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f), defaultParameters.pitchShift),
+        ::juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), defaultParameters.pitchShift),
       std::make_unique<::juce::AudioParameterFloat>(
         "formantsShift_" + oneBasedChannelAsString, "Formants Filter Shift " + oneBasedChannelAsString,
-        ::juce::NormalisableRange<float>(-24.0f, 24.0f, 1.0f), defaultParameters.formantsShift),
+        ::juce::NormalisableRange<float>(-24.0f, 24.0f, 0.1f), defaultParameters.formantsShift),
       std::make_unique<::juce::AudioParameterFloat>(
         "mixGain_" + oneBasedChannelAsString, "Mix " + oneBasedChannelAsString,
         ::juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), defaultParameters.mixGain));

@@ -14,7 +14,7 @@ add_library(${PROJECT_NAME} INTERFACE
     sw/dft/spectrum.hpp
     sw/dft/transform.hpp
     sw/dft/utils.hpp
-    sw/frequencyfilter.hpp
+    sw/frequencyenvelope.hpp
     sw/notes.hpp
     sw/phases.hpp
     sw/pitchtool/processor.hpp

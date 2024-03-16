@@ -6,11 +6,13 @@
 
 namespace sw {
 
+/// "Kind of" envelope, flattening frequencies by averaging.
+/// Also having a hold time to keep last fed frequency, if no frequency (<=0) is fed.
 template<std::floating_point F>
-class FrequencyFilter
+class FrequencyEnvelope
 {
 public:
-    FrequencyFilter(const size_t initialCapacity) { m_buffer.reserve(initialCapacity); }
+    FrequencyEnvelope(const size_t initialCapacity) { m_buffer.reserve(initialCapacity); }
 
     F process(const F frequency, const F sampleTime, const F averagingTime, const F holdTime)
     {

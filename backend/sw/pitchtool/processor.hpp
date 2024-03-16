@@ -5,7 +5,7 @@
 #include "sw/containers/utils.hpp"
 #include "sw/dft/spectrum.hpp"
 #include "sw/dft/transform.hpp"
-#include "sw/frequencyfilter.hpp"
+#include "sw/frequencyenvelope.hpp"
 #include "sw/notes.hpp"
 #include "sw/phases.hpp"
 #include "sw/pitchtool/types.hpp"
@@ -193,7 +193,7 @@ public:
               ranges::accumulate<F>(gains<F>(m_inputState.binSpectrum) |
                                     std::views::transform([](const auto gain) { return gain * gain; }));
 
-            m_inputState.fundamentalFrequency = m_frequencyFilter.process(
+            m_inputState.fundamentalFrequency = m_frequencyEnvelope.process(
               findFundamental<F>(m_inputState.spectrum.inBuffer(), squaredGainsThreshold).frequency, timeDiff,
               tuningParameters.averagingTime, tuningParameters.holdTime);
         }
@@ -326,7 +326,7 @@ private:
     std::array<ChannelState<F>, NumChannels> m_channelStates;
     std::array<ChannelState<F>, NumChannels> m_formantsStates;
 
-    FrequencyFilter<F> m_frequencyFilter{100u};
+    FrequencyEnvelope<F> m_frequencyEnvelope{100u};
 
     std::vector<F> m_signalWindow;
 

@@ -92,7 +92,7 @@ public:
 private:
     static constexpr size_t m_signalBufferSize{48000u};
     std::array<sw::pitchtool::tuning::MidiTune, NumChannels> m_currentMidiTunes;
-    ::sw::pitchtool::Processor<float, NumChannels> m_pitchProcessor{2048u, 4u};
+    ::sw::pitchtool::Processor<float, NumChannels> m_pitchProcessor{2048u, 8u};
     ::sw::ProcessingBuffer<float> m_processingBuffer;
 
     ::juce::ChangeBroadcaster m_newDataBroadCaster;

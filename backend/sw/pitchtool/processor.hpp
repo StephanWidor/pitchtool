@@ -53,8 +53,8 @@ F tuningFactor(const TuningParameters<F> &tuningParameters, const tuning::Type &
         const auto noteFrequency = toFrequency<F>(note, tuningParameters.standardPitch, deviation);
 
         const auto tunedFrequency =
-          std::pow(static_cast<F>(2), envelopeFactor * std::log2(fundamentalFrequency) +
-                                        (math::one<F> - envelopeFactor) * std::log2(noteFrequency));
+          std::pow(static_cast<F>(2), (math::one<F> - envelopeFactor) * std::log2(fundamentalFrequency) +
+                                        envelopeFactor * std::log2(noteFrequency));
 
         return tunedFrequency / fundamentalFrequency;
     };

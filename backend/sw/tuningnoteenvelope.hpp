@@ -7,6 +7,7 @@ template<std::floating_point F>
 class TuningNoteEnvelope
 {
 public:
+    /// Going from 0 to 1 in attackTime if note is not invalid and stays the same, otherwise resetting to 0
     F process(const Note note, const F attackTime, const F timeDiff)
     {
         assert(math::zero<F> <= attackTime);
@@ -17,8 +18,8 @@ public:
             m_elapsed += timeDiff;
         m_currentNote = note;
         if (m_elapsed < attackTime)
-            return math::oneHalf<F> * std::cos(math::pi<F> * m_elapsed / attackTime) + math::oneHalf<F>;
-        return math::zero<F>;
+            return math::oneHalf<F> - math::oneHalf<F> * std::cos(math::pi<F> * m_elapsed / attackTime);
+        return math::one<F>;
     }
 
 private:

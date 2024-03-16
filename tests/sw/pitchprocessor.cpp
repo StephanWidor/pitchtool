@@ -1,4 +1,11 @@
-//#if __has_include(<matplotlib-cpp/matplotlibcpp.h>)
+#undef MATPLOTLIB_HEADER
+#if __has_include(<matplotlibcpp.h>)
+#define MATPLOTLIB_HEADER <matplotlibcpp.h>
+#elif __has_include(<matplotlib-cpp/matplotlibcpp.h>)
+#define MATPLOTLIB_HEADER <matplotlib-cpp/matplotlibcpp.h>
+#endif
+
+#ifdef MATPLOTLIB_HEADER
 
 #include <gtest/gtest.h>
 #include <sw/containers/utils.hpp>
@@ -7,7 +14,7 @@
 #include <sw/spectrum.hpp>
 
 #define WITHOUT_NUMPY
-#include <matplotlib-cpp/matplotlibcpp.h>
+#include MATPLOTLIB_HEADER
 
 namespace sw::dft::tests {
 
@@ -131,4 +138,4 @@ TEST(PitchProcessorTest, plot_different_parameters)
 
 }    // namespace sw::dft::tests
 
-//#endif
+#endif

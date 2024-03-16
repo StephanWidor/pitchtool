@@ -1,8 +1,6 @@
 #pragma once
-#include <atomic>
 #include <chrono>
 #include <concepts>
-#include <functional>
 
 namespace sw::chrono {
 

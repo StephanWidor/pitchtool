@@ -92,7 +92,7 @@ void shiftPitch(const ChannelState<F> &inputState, const F pitchFactor, const F 
     };
 
     const auto shiftedCoefficient = [&](const F lastPhase, const F refPhase, const F frequency, const F sourceGain) {
-        auto newPhase = shiftPhase(lastPhase, frequency, timeDiff);
+        const auto newPhase = standardized(lastPhase + phaseAngle(frequency, timeDiff));
         const auto cosAngle = std::cos(refPhase - newPhase);
         constexpr auto absBound = static_cast<F>(0.7);
         const auto angleFactor = math::one<F> / std::max(std::abs(cosAngle), absBound);

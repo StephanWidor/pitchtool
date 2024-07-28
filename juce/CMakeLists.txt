@@ -24,7 +24,9 @@ juce_add_plugin(${PROJECT_NAME}
     VST3_CATEGORIES "Fx"
     NEEDS_MIDI_INPUT TRUE
     NEEDS_MIDI_OUTPUT FALSE
+    IS_SYNTH FALSE
     LV2URI https://widor.site/lv2/pitchtool_juce
+    COPY_PLUGIN_AFTER_BUILD FALSE
     )
 
 target_include_directories(${PROJECT_NAME} PRIVATE .)

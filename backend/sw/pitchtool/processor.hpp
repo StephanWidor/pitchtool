@@ -1,17 +1,17 @@
 #pragma once
-#include "sw/basics/ranges.hpp"
-#include "sw/basics/variant.hpp"
-#include "sw/containers/spinlockedbuffer.hpp"
-#include "sw/containers/utils.hpp"
-#include "sw/dft/spectrum.hpp"
-#include "sw/dft/transform.hpp"
-#include "sw/frequencyenvelope.hpp"
-#include "sw/notes.hpp"
-#include "sw/phases.hpp"
 #include "sw/pitchtool/types.hpp"
-#include "sw/signals.hpp"
 #include <chrono>
 #include <cstring>
+#include <sw/containers/spinlockedringbuffer.hpp>
+#include <sw/containers/utils.hpp>
+#include <sw/dft/spectrum.hpp>
+#include <sw/dft/transform.hpp>
+#include <sw/frequencyenvelope.hpp>
+#include <sw/notes.hpp>
+#include <sw/phases.hpp>
+#include <sw/ranges/utils.hpp>
+#include <sw/signals.hpp>
+#include <sw/variant.hpp>
 #include <variant>
 
 namespace sw::pitchtool {
@@ -19,17 +19,14 @@ namespace sw::pitchtool {
 namespace detail {
 
 template<std::floating_point F>
-void toFilteredSpectrum(std::vector<SpectrumValue<F>> &binSpectrum,
-                        containers::SpinLockedBuffer<SpectrumValue<F>> &o_spectrum)
+void toFilteredSpectrum(std::vector<SpectrumValue<F>> &binSpectrum, std::vector<SpectrumValue<F>> &o_spectrum)
 {
-    o_spectrum.apply([&](std::vector<SpectrumValue<F>> &o_buffer) {
-        o_buffer.clear();
-        std::copy_if(binSpectrum.begin() + 1, binSpectrum.end(), std::back_inserter(o_buffer),
-                     [zeroGainThresholdLinear = dBToFactor(static_cast<F>(-60))](const auto &value) {
-                         return value.gain > zeroGainThresholdLinear;
-                     });
-        identifyFrequencies(o_buffer);
-    });
+    o_spectrum.clear();
+    std::copy_if(binSpectrum.begin() + 1, binSpectrum.end(), std::back_inserter(o_spectrum),
+                 [zeroGainThresholdLinear = dBToFactor(static_cast<F>(-60))](const auto &value) {
+                     return value.gain > zeroGainThresholdLinear;
+                 });
+    identifyFrequencies(o_spectrum);
 }
 
 template<std::floating_point F>
@@ -74,7 +71,7 @@ template<std::floating_point F>
 void shiftPitch(const ChannelState<F> &inputState, const F pitchFactor, const F sampleRate, const F timeDiff,
                 ChannelState<F> &io_state)
 {
-    const auto numValues = std::ranges::ssize(io_state.binSpectrum);    // swdebug: rename?
+    const auto numValues = std::ranges::ssize(io_state.binSpectrum);
     assert(std::ranges::ssize(io_state.binSpectrum) == numValues);
     assert(std::ranges::ssize(inputState.binSpectrum) == numValues);
     assert(std::ranges::ssize(io_state.coefficients) == numValues);
@@ -92,7 +89,7 @@ void shiftPitch(const ChannelState<F> &inputState, const F pitchFactor, const F 
     };
 
     const auto shiftedCoefficient = [&](const F lastPhase, const F refPhase, const F frequency, const F sourceGain) {
-        const auto newPhase = standardized(lastPhase + phaseAngle(frequency, timeDiff));
+        const auto newPhase = math::angles::standardized(lastPhase + phaseAngle(frequency, timeDiff));
         const auto cosAngle = std::cos(refPhase - newPhase);
         constexpr auto absBound = static_cast<F>(0.7);
         const auto angleFactor = math::one<F> / std::max(std::abs(cosAngle), absBound);
@@ -181,12 +178,12 @@ public:
                            m_inputState.accumulator.end() - static_cast<int>(m_fftLength), tmp_processingSignal.begin(),
                            std::multiplies());
 
-            m_fft.transform(tmp_processingSignal, m_inputState.coefficients, false);
+            m_fft.transform(tmp_processingSignal, m_inputState.coefficients);
 
             dft::toSpectrumByPhase<F>(sampleRate, timeDiff, m_inputState.phases, m_inputState.coefficients,
                                       m_inputState.binSpectrum, m_inputState.phases);
 
-            detail::toFilteredSpectrum(m_inputState.binSpectrum, m_inputState.spectrum);
+            detail::toFilteredSpectrum(m_inputState.binSpectrum, m_inputState.spectrumSwap.inSwap());
 
             const auto squaredGainsThreshold =
               static_cast<F>(0.3) *
@@ -194,8 +191,10 @@ public:
                                     std::views::transform([](const auto gain) { return gain * gain; }));
 
             m_inputState.fundamentalFrequency = m_frequencyEnvelope.process(
-              findFundamental<F>(m_inputState.spectrum.inBuffer(), squaredGainsThreshold).frequency, timeDiff,
+              findFundamental<F>(m_inputState.spectrumSwap.inSwap(), squaredGainsThreshold).frequency, timeDiff,
               tuningParameters.averagingTime, tuningParameters.holdTime);
+
+            m_inputState.spectrumSwap.push();
         }
 
         {    // process channels
@@ -233,7 +232,8 @@ public:
 
         containers::ringPush(m_inputState.accumulator, signal);
         m_inputState.fundamentalFrequency = math::zero<F>;
-        m_inputState.spectrum.clear();
+        m_inputState.spectrumSwap.inSwap().clear();
+        m_inputState.spectrumSwap.push();
 
         for (auto i = 0; i < NumChannels; ++i)
         {
@@ -252,13 +252,13 @@ public:
 
     size_t overlapSize() const { return m_fftLength - stepSize(); }
 
-    const std::vector<SpectrumValue<F>> &inSpectrum() const { return m_inputState.spectrum.outBuffer(); }
+    const std::vector<SpectrumValue<F>> &inputSpectrum() const { return m_inputState.spectrumSwap.pull(); }
 
     F inFundamentalFrequency() const { return m_inputState.fundamentalFrequency; }
 
-    const std::vector<SpectrumValue<F>> &outSpectrum(const size_t channel) const
+    const std::vector<SpectrumValue<F>> &outputSpectrum(const size_t channel) const
     {
-        return m_channelStates[channel].spectrum.outBuffer();
+        return m_channelStates[channel].spectrumSwap.pull();
     }
 
     F outFundamentalFrequency(const size_t channel) const { return m_channelStates[channel].fundamentalFrequency; }
@@ -305,9 +305,9 @@ private:
             std::ranges::transform(tmp_envelopeAlignmentFactors, stateGains, stateGains.begin(), std::multiplies());
         }
 
-        detail::toFilteredSpectrum(io_channelState.binSpectrum, io_channelState.spectrum);
+        detail::toFilteredSpectrum(io_channelState.binSpectrum, io_channelState.spectrumSwap.inSwap());
 
-        m_fft.transform_inverse(io_channelState.coefficients, tmp_processingSignal, false);
+        m_fft.transform_inverse(io_channelState.coefficients, tmp_processingSignal);
 
         std::transform(tmp_processingSignal.begin(), tmp_processingSignal.end(), m_signalWindow.begin(),
                        tmp_processingSignal.begin(),
@@ -316,6 +316,8 @@ private:
         containers::ringPush(io_channelState.accumulator, math::zero<F>, stepSize);
         std::transform(tmp_processingSignal.begin(), tmp_processingSignal.end(), io_channelState.accumulator.begin(),
                        io_channelState.accumulator.begin(), std::plus());
+
+        io_channelState.spectrumSwap.push();
     }
 
     size_t m_fftLength{0u};

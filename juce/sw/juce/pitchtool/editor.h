@@ -1,6 +1,6 @@
 #pragma once
 #include "sw/juce/pitchtool/processor.h"
-#include <sw/basics/chrono.hpp>
+#include <sw/chrono/stopwatch.hpp>
 #include <sw/juce/ui/groupcomponent.h>
 #include <sw/juce/ui/notedisplay.h>
 #include <sw/juce/ui/plot.h>

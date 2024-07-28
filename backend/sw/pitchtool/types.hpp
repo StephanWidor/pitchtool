@@ -1,12 +1,13 @@
 #pragma once
-#include "sw/basics/math.hpp"
-#include "sw/containers/spinlockedbuffer.hpp"
-#include "sw/containers/utils.hpp"
-#include "sw/dft/utils.hpp"
-#include "sw/notes.hpp"
-#include "sw/spectrum.hpp"
-#include "sw/tuningnoteenvelope.hpp"
 #include <algorithm>
+#include <sw/containers/lockfreeswap.hpp>
+#include <sw/containers/spinlockedringbuffer.hpp>
+#include <sw/containers/utils.hpp>
+#include <sw/dft/utils.hpp>
+#include <sw/math/math.hpp>
+#include <sw/notes.hpp>
+#include <sw/spectrum.hpp>
+#include <sw/tuningnoteenvelope.hpp>
 #include <variant>
 
 namespace sw::pitchtool {
@@ -90,7 +91,7 @@ struct ChannelState
         , binSpectrum(dft::nyquistLength(fftLength))
         , phases(dft::nyquistLength(fftLength))
         , accumulator(fftLength)
-        , spectrum(dft::nyquistLength(fftLength), {})
+        , spectrumSwap(std::vector<SpectrumValue<F>>(dft::nyquistLength(fftLength)))
     {}
 
     void clear()
@@ -99,7 +100,8 @@ struct ChannelState
         std::ranges::fill(binSpectrum, SpectrumValue<F>{});
         std::ranges::fill(phases, math::zero<F>);
         containers::ringPush(accumulator, math::zero<F>, accumulator.size());
-        spectrum.clear();
+        spectrumSwap.inSwap().clear();
+        spectrumSwap.push();
         fundamentalFrequency = math::zero<F>;
     }
 
@@ -108,7 +110,7 @@ struct ChannelState
     std::vector<SpectrumValue<F>> binSpectrum;
     std::vector<F> phases;
     std::vector<F> accumulator;
-    containers::SpinLockedBuffer<SpectrumValue<F>> spectrum;
+    containers::LockFreeSwap<std::vector<SpectrumValue<F>>> spectrumSwap;
     std::atomic<F> fundamentalFrequency{math::zero<F>};    ///< leq 0 means no fundamental frequency found
 };
 

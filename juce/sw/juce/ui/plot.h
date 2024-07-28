@@ -3,8 +3,8 @@
 #include <juce_graphics/juce_graphics.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <limits>
-#include <sw/basics/ranges.hpp>
 #include <sw/containers/utils.hpp>
+#include <sw/ranges/utils.hpp>
 #include <sw/signals.hpp>
 
 namespace sw::juce::ui::plot {

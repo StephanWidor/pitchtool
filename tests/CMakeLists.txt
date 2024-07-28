@@ -8,11 +8,6 @@ enable_testing()
 include(GoogleTest)
 
 add_executable(${PROJECT_NAME}
-    sw/dft/spectrum.cpp
-    sw/dft/transform.cpp
-    sw/notes.cpp
-    sw/phases.cpp
-    sw/sinewavedetection.cpp
     sw/pitchprocessor.cpp
     )
 

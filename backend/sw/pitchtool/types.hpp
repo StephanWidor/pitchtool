@@ -37,9 +37,9 @@ template<std::floating_point F>
 struct TuningParameters
 {
     F standardPitch{static_cast<F>(440)};
-    F averagingTime{static_cast<F>(0.01)};
-    F holdTime{static_cast<F>(0.02)};
-    F attackTime{static_cast<F>(0.01)};
+    F averagingTime{static_cast<F>(0.005)};
+    F holdTime{static_cast<F>(0.01)};
+    F attackTime{static_cast<F>(0.005)};
 
     static constexpr std::array<F, 2u> standardPitchRange{static_cast<F>(400), static_cast<F>(480)};
     static constexpr std::array<F, 2u> averagingTimeRange{static_cast<F>(0), static_cast<F>(0.2)};

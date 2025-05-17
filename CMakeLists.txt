@@ -6,6 +6,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(BUILD_JUCE_PLUGIN "Build JUCE Plugin" ON)
 option(ENABLE_TESTS "Enable building Tests" OFF)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
+endif(NOT CMAKE_BUILD_TYPE)
+
 add_subdirectory(backend)
 if(BUILD_JUCE_PLUGIN)
     add_subdirectory(juce)

@@ -1,7 +1,7 @@
 #pragma once
 #include <juce_graphics/juce_graphics.h>
 #include <juce_gui_basics/juce_gui_basics.h>
-#include <sw/basics/ranges.hpp>
+#include <sw/ranges/utils.hpp>
 
 namespace sw::juce::ui {
 

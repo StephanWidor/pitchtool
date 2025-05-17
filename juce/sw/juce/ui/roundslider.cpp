@@ -1,4 +1,5 @@
 #include "sw/juce/ui/roundslider.h"
+
 #include <cmath>
 
 sw::juce::ui::RoundSlider::RoundSlider(const std::string &labelText)

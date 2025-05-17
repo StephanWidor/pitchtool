@@ -3,8 +3,8 @@
 #include <juce_graphics/juce_graphics.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 #include <limits>
-#include <sw/basics/ranges.hpp>
 #include <sw/containers/utils.hpp>
+#include <sw/ranges/utils.hpp>
 #include <sw/signals.hpp>
 
 namespace sw::juce::ui::plot {
@@ -174,7 +174,6 @@ public:
 
 private:
     ::juce::Range<float> m_xRange, m_yRange;
-    //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)
 };
 
 }    // namespace sw::juce::ui::plot

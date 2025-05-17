@@ -2,7 +2,8 @@
 #include "BinaryData.h"
 #include "sw/juce/pitchtool/processor.h"
 #include "sw/juce/ui/utils.h"
-#include "sw/notes.hpp"
+#include <sw/notes.hpp>
+
 #include <ranges>
 
 namespace {
@@ -138,9 +139,9 @@ void sw::juce::pitchtool::PlotComponent::updatePlots()
                               ui::plot::spectrum::yValues(gains<float>(spectrum), gainsLogScale));
         };
 
-        plotSpectrum(m_processor.pitchProcessor().inSpectrum(), m_spectrumPlot.graphs.back());
+        plotSpectrum(m_processor.pitchProcessor().inputSpectrum(), m_spectrumPlot.graphs.back());
         for (auto channel = 0u; channel < Processor::NumChannels; ++channel)
-            plotSpectrum(m_processor.pitchProcessor().outSpectrum(channel), m_spectrumPlot.graphs[channel]);
+            plotSpectrum(m_processor.pitchProcessor().outputSpectrum(channel), m_spectrumPlot.graphs[channel]);
 
         m_spectrumPlot.repaint();
     }

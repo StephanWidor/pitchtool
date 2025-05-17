@@ -38,7 +38,6 @@ private:
     Layout m_layout{Layout::Horizontal};
     float m_cornerSize{5.0f};
     ::juce::Label m_label;
-    //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)
 };
 
 }    // namespace sw::juce::ui

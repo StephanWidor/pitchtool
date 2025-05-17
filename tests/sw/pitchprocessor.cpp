@@ -47,10 +47,10 @@ TEST(PitchProcessorTest, plotting)
 
         plt::figure_size(1000u, 800u);
         plt::xlim(std::max(0.0, minFreq - 500.0), std::min(0.5 * sampleRate, maxFreq + 500.0));
-        plt::bar(ranges::to_vector(frequencies<double>(processor.inSpectrum())),
-                 ranges::to_vector(gains<double>(processor.inSpectrum())), "r");
-        plt::bar(ranges::to_vector(frequencies<double>(processor.outSpectrum(0))),
-                 ranges::to_vector(gains<double>(processor.outSpectrum(0))), "b");
+        plt::bar(std::ranges::to<std::vector>(frequencies<double>(processor.inputSpectrum())),
+                 std::ranges::to<std::vector>(gains<double>(processor.inputSpectrum())), "r");
+        plt::bar(std::ranges::to<std::vector>(frequencies<double>(processor.outputSpectrum(0))),
+                 std::ranges::to<std::vector>(gains<double>(processor.outputSpectrum(0))), "b");
         plt::show();
     };
 

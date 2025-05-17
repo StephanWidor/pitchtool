@@ -57,7 +57,7 @@ public:
     int getCurrentProgram() override { return 0; }
     void setCurrentProgram(int) override {}
     const ::juce::String getProgramName(int) override { return {}; }
-    void changeProgramName(int, const ::juce::String &) override{};
+    void changeProgramName(int, const ::juce::String &) override {};
 
     void getStateInformation(::juce::MemoryBlock &destData) override;
     void setStateInformation(const void *data, int sizeInBytes) override;
@@ -97,8 +97,6 @@ private:
 
     ::juce::ChangeBroadcaster m_newDataBroadCaster;
     ::juce::AudioProcessorValueTreeState m_parameterState;
-
-    //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Processor)
 };
 
 }    // namespace sw::juce::pitchtool

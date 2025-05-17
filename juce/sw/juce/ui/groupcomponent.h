@@ -22,8 +22,6 @@ private:
     ::juce::Label m_label;
     float m_cornerSize{5.0f};
     bool m_drawBorder{false};
-
-    //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)
 };
 
 }    // namespace sw::juce::ui

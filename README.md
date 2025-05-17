@@ -17,7 +17,7 @@ git submodule update --init --recursive
 mkdir build
 cd build
 cmake ..
-make -j$(nproc)
+cmake --build .
 ```
 
 After successful build, Standalone app, LV2, and VST3 plugin can be found

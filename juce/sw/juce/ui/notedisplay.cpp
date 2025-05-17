@@ -106,5 +106,5 @@ void sw::juce::ui::NoteDisplay::resized()
 {
     const auto labelBounds = setLabelBounds();
     const auto fontSize = std::min(labelBounds.getHeight(), 0.4f * labelBounds.getWidth());
-    m_label.setFont(::juce::Font(fontSize, ::juce::Font::bold));
+    m_label.setFont(::juce::FontOptions(fontSize, ::juce::Font::bold));
 }

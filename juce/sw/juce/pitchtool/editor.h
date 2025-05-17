@@ -60,8 +60,6 @@ private:
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_averagingTimeAttachment;
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_holdTimeAttachment;
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_attackTimeAttachment;
-
-    //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)
 };
 
 class ChannelComponent : public ui::GroupComponent
@@ -83,8 +81,6 @@ private:
     ::juce::AudioProcessorValueTreeState::ComboBoxAttachment m_tuningAttachment;
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_pitchShiftAttachment;
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_formantsShiftAttachment;
-
-    //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)
 };
 
 class MixComponent : public ui::GroupComponent
@@ -103,8 +99,6 @@ private:
 
     ::juce::AudioProcessorValueTreeState::SliderAttachment m_dryAttachment;
     std::array<::juce::AudioProcessorValueTreeState::SliderAttachment, Processor::NumChannels> m_channelAttachments;
-
-    //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)
 };
 
 class Editor : public ::juce::AudioProcessorEditor, public ::juce::ChangeListener, public ::juce::Slider::Listener
@@ -131,8 +125,6 @@ private:
     std::array<ChannelComponent, Processor::NumChannels> m_channelComponents;
 
     MixComponent m_mixComponent;
-
-    //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Editor)
 };
 
 }    // namespace sw::juce::pitchtool

@@ -174,7 +174,6 @@ public:
 
 private:
     ::juce::Range<float> m_xRange, m_yRange;
-    //    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Plot)
 };
 
 }    // namespace sw::juce::ui::plot

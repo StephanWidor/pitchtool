@@ -3,4 +3,4 @@
 	url = https://github.com/juce-framework/JUCE.git
 [submodule "backend/swAudioLib"]
 	path = backend/swAudioLib
-	url = git@github.com:StephanWidor/AudioLib.git
+	url = https://github.com/StephanWidor/AudioLib.git

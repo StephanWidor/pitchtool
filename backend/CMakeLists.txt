@@ -11,10 +11,8 @@ add_library(${PROJECT_NAME} INTERFACE
     sw/pitchtool/types.hpp
     )
 
-find_package(OpenMP)
 target_link_libraries(${PROJECT_NAME}
     INTERFACE
-    $<$<BOOL:OpenMP_CXX_FOUND>:OpenMP::OpenMP_CXX>
     swAudioLib
     )
 

@@ -14,13 +14,13 @@ sw::juce::ui::NoteDisplay::NoteDisplay(Layout layout, float cornerSize): m_layou
         const auto nameIndex = static_cast<float>(m_note.name);
         if (m_layout == Layout::Horizontal)
         {
-            const auto width = getWidth() / 12.0f;
-            m_label.setBounds(getLocalBounds().withX(nameIndex * width).withWidth(width).toNearestInt());
+            const auto width = static_cast<float>(getWidth()) / 12.0f;
+            m_label.setBounds(getLocalBounds().toFloat().withX(nameIndex * width).withWidth(width).toNearestInt());
         }
         else
         {
             const auto height = getHeight() / 12.0f;
-            m_label.setBounds(getLocalBounds().withY((11.0f - nameIndex) * height).withHeight(height).toNearestInt());
+            m_label.setBounds(getLocalBounds().toFloat().withY((11.0f - nameIndex) * height).withHeight(height).toNearestInt());
         }
     }
     return m_label.getBounds().toFloat();

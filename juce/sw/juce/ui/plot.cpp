@@ -32,7 +32,7 @@ void sw::juce::ui::plot::Graph::paint(::juce::Graphics &juceGraphics, const ::ju
         };
 
         m_path.clear();
-        m_path.preallocateSpace(m_drawType == DrawType::LineConnected ? m_xValues.size() : 2 * m_xValues.size());
+        m_path.preallocateSpace(static_cast<int>(m_drawType == DrawType::LineConnected ? m_xValues.size() : 2u * m_xValues.size()));
         if (m_drawType == DrawType::LineConnected)
         {
             m_path.startNewSubPath(makePlotPoint(m_xValues.front(), m_yValues.front()));

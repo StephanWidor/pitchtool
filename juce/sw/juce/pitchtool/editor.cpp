@@ -8,7 +8,7 @@
 
 namespace {
 
-constexpr auto marginsSize{10.0f};
+constexpr auto marginsSize{10};
 constexpr auto noteDisplayWidth{30.0f};
 
 std::array<::juce::Colour, sw::juce::pitchtool::Processor::NumChannels> signalGraphColors{

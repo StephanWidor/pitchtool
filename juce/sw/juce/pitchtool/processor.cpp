@@ -100,8 +100,8 @@ void processMidiBuffer(
     for (const auto &metaMessage : midiBuffer)
     {
         const auto message = metaMessage.getMessage();
-        const auto midiChannel = message.getChannel();
-        const auto processingChannel = midiChannel - 1;
+        const auto midiChannel = static_cast<size_t>(message.getChannel());
+        const auto processingChannel = midiChannel - 1u;
 
         if (processingChannel < o_midiTunes.size())
         {
@@ -132,7 +132,7 @@ sw::juce::pitchtool::Processor::Processor()
     , m_processingBuffer(m_signalBufferSize, m_pitchProcessor.stepSize())
     , m_parameterState(*this, nullptr, "state", createParameterLayout(NumChannels))
 {
-    setLatencySamples(m_pitchProcessor.overlapSize());
+    setLatencySamples(static_cast<int>(m_pitchProcessor.overlapSize()));
 }
 
 bool sw::juce::pitchtool::Processor::isBusesLayoutSupported(const BusesLayout &layouts) const
@@ -182,7 +182,7 @@ void sw::juce::pitchtool::Processor::processBlock(::juce::AudioBuffer<float> &au
 }
 
 void sw::juce::pitchtool::Processor::processBlockBypassed(::juce::AudioBuffer<float> &audioBuffer,
-                                                          ::juce::MidiBuffer &midiBuffer)
+                                                          ::juce::MidiBuffer &)
 {
     resetMidi();
 

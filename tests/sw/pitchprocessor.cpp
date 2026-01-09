@@ -24,15 +24,12 @@ TEST(PitchProcessorTest, plotting)
 
     constexpr auto sampleRate = 48000.0;
     constexpr auto fftLength = 2048u;
-    constexpr auto nyquistLength = dft::nyquistLength(fftLength);
     constexpr auto oversampling = 4u;
     constexpr auto stepSize = fftLength / oversampling;
     constexpr auto numTransforms = 10u;
-    constexpr auto timeDiff = static_cast<double>(stepSize) / sampleRate;
     constexpr auto signalLength = numTransforms * stepSize;
-    const auto binFrequencyStep = dft::binFrequencyStep(fftLength, sampleRate);
 
-    constexpr auto doPlotSpectrum = false;
+    constexpr auto doPlotSpectrum = true;
 
     using Processor = pitchtool::Processor<double, 1>;
 
@@ -41,7 +38,7 @@ TEST(PitchProcessorTest, plotting)
 
     Processor processor(fftLength, oversampling);
 
-    const auto plotSpectrum = [&](const auto frequency) {
+    const auto plotSpectrum = [&](const double frequency) {
         const auto pitchedFrequency = semitonesToFactor(channelParameters.pitchShift) * frequency;
         const auto [minFreq, maxFreq] = std::minmax(frequency, pitchedFrequency);
 
@@ -55,7 +52,7 @@ TEST(PitchProcessorTest, plotting)
     };
 
     std::vector<double> stepOutSignal(processor.stepSize());
-    for (auto frequency = 100.0; frequency < 0.5 * sampleRate; frequency += 500.0)
+    for (auto frequency = 100; static_cast<double>(2 * frequency) < sampleRate; frequency += 500)
     {
         auto signal = makeSineWave<double>(1.0, frequency, sampleRate, signalLength);
 
@@ -83,11 +80,9 @@ TEST(PitchProcessorTest, plot_different_parameters)
 
     constexpr auto sampleRate = 48000.0;
     constexpr auto fftLength = 2048u;
-    constexpr auto nyquistLength = dft::nyquistLength(fftLength);
     constexpr auto oversampling = 4u;
     constexpr auto stepSize = fftLength / oversampling;
     constexpr auto numTransforms = 10u;
-    constexpr auto timeDiff = static_cast<double>(stepSize) / sampleRate;
     constexpr auto signalLength = numTransforms * stepSize;
     const auto binFrequencyStep = dft::binFrequencyStep(fftLength, sampleRate);
 
@@ -116,7 +111,7 @@ TEST(PitchProcessorTest, plot_different_parameters)
         std::vector<double> outSignal;
 
         auto signalIt = signal.begin();
-        for (auto paramIndex = 0; paramIndex < channelParameters.size(); ++paramIndex)
+        for (auto paramIndex = 0u; paramIndex < channelParameters.size(); ++paramIndex)
         {
             const auto &parameters = channelParameters[paramIndex];
             for (auto stepIndex = 0u; stepIndex < numTransforms; ++stepIndex)

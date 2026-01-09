@@ -1,6 +1,5 @@
 #pragma once
 #include "sw/pitchtool/types.hpp"
-#include <chrono>
 #include <cstring>
 #include <sw/containers/spinlockedringbuffer.hpp>
 #include <sw/containers/utils.hpp>
@@ -71,7 +70,7 @@ template<std::floating_point F>
 void shiftPitch(const ChannelState<F> &inputState, const F pitchFactor, const F sampleRate, const F timeDiff,
                 ChannelState<F> &io_state)
 {
-    const auto numValues = std::ranges::ssize(io_state.binSpectrum);
+    const auto numValues = static_cast<int>(std::ranges::ssize(io_state.binSpectrum));
     assert(std::ranges::ssize(io_state.binSpectrum) == numValues);
     assert(std::ranges::ssize(inputState.binSpectrum) == numValues);
     assert(std::ranges::ssize(io_state.coefficients) == numValues);
@@ -79,9 +78,9 @@ void shiftPitch(const ChannelState<F> &inputState, const F pitchFactor, const F 
 
     const auto sourceIndexRange = [&](const auto index) {
         const auto beginIndex =
-          std::min<int>(static_cast<int>(
-                          std::max(math::zero<F>, std::ceil((static_cast<F>(index) - math::oneHalf<F>) / pitchFactor))),
-                        numValues);
+          std::min(static_cast<int>(
+                     std::max(math::zero<F>, std::ceil((static_cast<F>(index) - math::oneHalf<F>) / pitchFactor))),
+                   numValues);
         const auto endIndex = std::clamp<int>(
           static_cast<int>(std::ceil((static_cast<F>(index) + math::oneHalf<F>) / pitchFactor)), 0, numValues);
         assert(endIndex >= beginIndex);

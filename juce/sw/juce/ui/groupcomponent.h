@@ -7,7 +7,9 @@ namespace sw::juce::ui {
 class GroupComponent : public ::juce::Component
 {
 public:
-    GroupComponent(const std::string &label, float cornerSize = 5.0f, bool drawBorder = false);
+    static constexpr int defaultCornerSize = 5;
+
+    GroupComponent(const std::string &label, int cornerSize = defaultCornerSize, bool drawBorder = false);
 
     void paint(::juce::Graphics &) override;
 
@@ -20,7 +22,7 @@ public:
 
 private:
     ::juce::Label m_label;
-    float m_cornerSize{5.0f};
+    int m_cornerSize{defaultCornerSize};
     bool m_drawBorder{false};
 };
 

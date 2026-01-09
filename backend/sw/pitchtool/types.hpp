@@ -51,7 +51,7 @@ struct TuningParameters
 template<std::floating_point F>
 struct ChannelParameters
 {
-    tuning::Type tuningType;
+    tuning::Type tuningType{};
     F pitchShift{math::zero<F>};
     F formantsShift{math::zero<F>};
     F mixGain{math::zero<F>};

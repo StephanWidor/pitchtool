@@ -4,8 +4,6 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# AudioPluginHost from extras can be useful for debugging
-#set(JUCE_BUILD_EXTRAS ON CACHE BOOL "Add build targets for the Projucer and other tools")
 add_subdirectory(juce-framework)
 
 set(JUCE_PLUGIN_FORMATS Standalone VST3)
@@ -79,4 +77,20 @@ target_link_libraries(${PROJECT_NAME}
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     pitchtool-backend
+    )
+
+if(MSVC)
+    set(ALL_WARNINGS_OPTIONS "/W4")
+    set(NO_WARNINGS_OPTIONS "/w")
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+else()
+    set(ALL_WARNINGS_OPTIONS "-Wall;-Wextra;-Wpedantic")
+    set(NO_WARNINGS_OPTIONS "-Wno-everything")
+endif()
+target_compile_options(${PROJECT_NAME} PRIVATE ${ALL_WARNINGS_OPTIONS})
+
+set_source_files_properties(
+    juce-framework/modules/juce_audio_plugin_client/juce_audio_plugin_client_VST3.cpp
+    PROPERTIES
+    COMPILE_FLAGS ${NO_WARNINGS_OPTIONS}
     )

@@ -11,6 +11,12 @@ add_executable(${PROJECT_NAME}
     sw/pitchprocessor.cpp
     )
 
+if(MSVC)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 
 target_link_libraries(${PROJECT_NAME}

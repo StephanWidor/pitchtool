@@ -75,7 +75,7 @@ void sw::juce::ui::plot::Plot::paint(::juce::Graphics &juceGraphics)
 
     constexpr auto strokeWidth = 2.0f;
     juceGraphics.setColour(getLookAndFeel().findColour(Plot::borderColourId));
-    juceGraphics.drawRect(getLocalBounds().toFloat());
+    juceGraphics.drawRect(getLocalBounds().toFloat(), strokeWidth);
 
     const auto plotArea = getLocalBounds().toFloat().reduced(10.0f, 10.0f);
     for (auto &graph : graphs)

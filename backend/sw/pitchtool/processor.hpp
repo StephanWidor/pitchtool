@@ -1,7 +1,5 @@
 #pragma once
 #include "sw/pitchtool/types.hpp"
-#include <cstring>
-#include <sw/containers/spinlockedringbuffer.hpp>
 #include <sw/containers/utils.hpp>
 #include <sw/dft/spectrum.hpp>
 #include <sw/dft/transform.hpp>
@@ -11,7 +9,8 @@
 #include <sw/ranges/utils.hpp>
 #include <sw/signals.hpp>
 #include <sw/variant.hpp>
-#include <variant>
+
+#include <cstring>
 
 namespace sw::pitchtool {
 

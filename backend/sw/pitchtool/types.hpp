@@ -1,14 +1,11 @@
 #pragma once
-#include <algorithm>
-#include <sw/containers/lockfreeswap.hpp>
-#include <sw/containers/spinlockedringbuffer.hpp>
+#include <sw/containers/spsc/swap.hpp>
 #include <sw/containers/utils.hpp>
 #include <sw/dft/utils.hpp>
 #include <sw/math/math.hpp>
 #include <sw/notes.hpp>
 #include <sw/spectrum.hpp>
 #include <sw/tuningnoteenvelope.hpp>
-#include <variant>
 
 namespace sw::pitchtool {
 
@@ -110,7 +107,7 @@ struct ChannelState
     std::vector<SpectrumValue<F>> binSpectrum;
     std::vector<F> phases;
     std::vector<F> accumulator;
-    containers::LockFreeSwap<std::vector<SpectrumValue<F>>> spectrumSwap;
+    containers::spsc::Swap<std::vector<SpectrumValue<F>>> spectrumSwap;
     std::atomic<F> fundamentalFrequency{math::zero<F>};    ///< leq 0 means no fundamental frequency found
 };
 
